@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "description": "",
   "main": "index.js",
-  "dependencies": {},
+  "dependencies": {
+    "geth": "^0.4.0"
+  },
   "devDependencies": {
     "ethereumjs-testrpc": "^6.0.3",
     "ganache-cli": "^6.4.2",
@@ -11,6 +13,7 @@
     "truffle": "^5.0.12"
   },
   "scripts": {
+    "truffle": "truffle",
     "compile": "truffle compile",
     "testrpc": "testrpc",
     "test-deploy": "truffle migrate --reset"
