@@ -2,7 +2,7 @@ const token = artifacts.require("../contracts/ONLSTestToken.sol");
 const crowdsale = artifacts.require("../contracts/ONLSTestCrowdsale.sol");
 
 module.exports = function (deployer, network, accounts) {
-  const openingTime = 1555185900;
+  const openingTime = 1555189200;
   const closingTime = 1560456300;
   const rate = 1;
   const wallet = '0x52250807be77a54672e935a60156babda83a3839';
