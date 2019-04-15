@@ -4,7 +4,7 @@ interface token {
     function transfer(address receiver, uint amount) external;
 }
 
-contract Crowdsale {
+contract ONLSFixedCrowdsale {
     address public beneficiary;
     uint public fundingGoal;
     uint public amountRaised;

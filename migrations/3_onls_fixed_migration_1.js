@@ -1,5 +1,5 @@
-const token = artifacts.require("../contracts/TokenERC20.sol");
-const crowdsale = artifacts.require("../contracts/Crowdsale.sol")
+const token = artifacts.require("../contracts/ONLSFixedToken.sol");
+const crowdsale = artifacts.require("../contracts/ONLSFixedCrowdsale.sol")
 
 module.exports = function (deployer, network, accounts) {
 
@@ -12,9 +12,10 @@ module.exports = function (deployer, network, accounts) {
 
   return deployer
     .then(() => {
-      return deployer.deploy(token, 250, 'OnLife Test Token', 'ONLST');
+      return deployer.deploy(token, 250, 'ONLS Fixed Token', 'ONLSFT');
     })
     .then(() => {
+      // TODO: send supply of tokens to sales contract
       return deployer.deploy(crowdsale, wallet, 100, 60 * 24 * 30, 1, token.address);
     });
 };
