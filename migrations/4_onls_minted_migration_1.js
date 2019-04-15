@@ -21,7 +21,6 @@ module.exports = function (deployer, network, accounts) {
       return deployer.deploy(token);
     })
     .then(() => {
-      // TODO: add sales contract to token minters
       return deployer.deploy(
         crowdsale,
         openingTime,
@@ -32,5 +31,10 @@ module.exports = function (deployer, network, accounts) {
         token.address,
         goal
       );
+    })
+    .then(() => {
+      token.deployed().then(instance => {
+        instance.addMinter(crowdsale.address);
+      })
     });
 };

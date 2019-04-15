@@ -15,7 +15,11 @@ module.exports = function (deployer, network, accounts) {
       return deployer.deploy(token, 250, 'ONLS Fixed Token', 'ONLSFT');
     })
     .then(() => {
-      // TODO: send supply of tokens to sales contract
       return deployer.deploy(crowdsale, wallet, 100, 60 * 24 * 30, 1, token.address);
+    })
+    .then(() => {
+      token.deployed().then(instance => {
+        instance.transfer(crowdsale.address, 250);
+      })
     });
 };
