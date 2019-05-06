@@ -55,6 +55,9 @@ contract('OnlsSeedSale', (accounts) => {
 
   it('allows to buy tokens', () => {
     return OnlsSeedSale.deployed().then(() => {
+      return seedInstance.sendTransaction({ from: BUYER, value: TOKEN_WEI_PRICE + 100000 });
+    }).then(assert.fail).catch((error) => {
+      assert(error.message.indexOf('revert') >= 0, 'msg.value must be multiple of token price in wei');
       return seedInstance.sendTransaction({ from: BUYER, value: TOKEN_WEI_PRICE });
     }).then(receipt => {
       assert.equal(receipt.logs.length, 1, 'triggers one event');
@@ -63,9 +66,6 @@ contract('OnlsSeedSale', (accounts) => {
       assert.equal(receipt.logs[0].args.beneficiary, BUYER, 'logs the account of beneficiary');
       assert.equal(receipt.logs[0].args.value.toNumber(), TOKEN_WEI_PRICE, 'logs the amount spent in wei');
       assert.equal(receipt.logs[0].args.amount.toNumber(), 1, 'logs the amount of purchased tokens');
-      return seedInstance.sendTransaction({ from: BUYER, value: TOKEN_WEI_PRICE + 100000 });
-    }).then(assert.fail).catch((error) => {
-      assert(error.message.indexOf('revert') >= 0, 'msg.value must be multiple of token price in wei');
     });
-  })
+  });
 });

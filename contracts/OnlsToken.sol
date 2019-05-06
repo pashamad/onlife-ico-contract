@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "../lib/token/ERC20/ERC20.sol";
-import "../lib/token/ERC20/ERC20Detailed.sol";
+import "../lib/openzepplin/token/ERC20/ERC20.sol";
+import "../lib/openzepplin/token/ERC20/ERC20Detailed.sol";
 
 contract OnlsToken is ERC20, ERC20Detailed {
 

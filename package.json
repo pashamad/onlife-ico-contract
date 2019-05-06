@@ -16,7 +16,7 @@
     "truffle": "truffle",
     "compile": "truffle compile",
     "testrpc": "testrpc",
-    "test-deploy": "truffle migrate --reset",
+    "deploy": "truffle migrate --reset",
     "test": "truffle test"
   },
   "author": "PM:/",

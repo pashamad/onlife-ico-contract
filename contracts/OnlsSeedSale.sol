@@ -1,8 +1,8 @@
 pragma solidity ^0.5.0;
 
-import "../lib/crowdsale/emission/AllowanceCrowdsale.sol";
-import "../lib/crowdsale/distribution/RefundablePostDeliveryCrowdsale.sol";
-import "../lib/crowdsale/validation/TimedCrowdsale.sol";
+import "../lib/openzepplin/crowdsale/emission/AllowanceCrowdsale.sol";
+import "../lib/openzepplin/crowdsale/distribution/RefundablePostDeliveryCrowdsale.sol";
+import "../lib/openzepplin/crowdsale/validation/TimedCrowdsale.sol";
 
 contract OnlsSeedSale is AllowanceCrowdsale, RefundablePostDeliveryCrowdsale {
 
