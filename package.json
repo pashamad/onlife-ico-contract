@@ -8,15 +8,16 @@
   },
   "devDependencies": {
     "ethereumjs-testrpc": "^6.0.3",
-    "ganache-cli": "^6.4.2",
+    "ganache-cli": "^6.4.3",
     "openzeppelin-solidity": "2.1.3",
-    "truffle": "^5.0.12"
+    "truffle": "^5.0.15"
   },
   "scripts": {
     "truffle": "truffle",
     "compile": "truffle compile",
     "testrpc": "testrpc",
-    "test-deploy": "truffle migrate --reset"
+    "test-deploy": "truffle migrate --reset",
+    "test": "truffle test"
   },
   "author": "PM:/",
   "license": "ISC"
