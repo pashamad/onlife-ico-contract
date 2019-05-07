@@ -4,21 +4,25 @@ import "../../openzepplin/ownership/Secondary.sol";
 
 contract Lockable is Secondary {
 
-  enum State { Locked, Unlocked }
+  enum LockState { Locked, Unlocked }
 
-  State private _state;
+  LockState private _state;
+
+  constructor() public {
+    _state = LockState.Locked;
+  }
 
   function isLocked() public view returns (bool) {
-    return _state == State.Locked;
+    return _state == LockState.Unlocked;
   }
 
   function lock() public onlyPrimary {
     require(!isLocked(), 'contract is locked');
-    _state = State.Locked;
+    _state = LockState.Locked;
   }
 
   function unlock() public onlyPrimary {
     require(isLocked(), 'contract is not locked');
-    _state = State.Unlocked;
+    _state = LockState.Unlocked;
   }
 }

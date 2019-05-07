@@ -1,10 +1,10 @@
 pragma solidity ^0.5.0;
 
 import "../lib/openzepplin/crowdsale/emission/AllowanceCrowdsale.sol";
-import "../lib/openzepplin/crowdsale/distribution/RefundablePostDeliveryCrowdsale.sol";
+import "../lib/onlife/crowdsale/SoftRefundableCrowdsale.sol";
 import "../lib/openzepplin/crowdsale/validation/TimedCrowdsale.sol";
 
-contract OnlsSeedSale is AllowanceCrowdsale, RefundablePostDeliveryCrowdsale {
+contract OnlsSeedSale is AllowanceCrowdsale, SoftRefundableCrowdsale {
 
   constructor(
     address tokenWallet,
@@ -17,7 +17,7 @@ contract OnlsSeedSale is AllowanceCrowdsale, RefundablePostDeliveryCrowdsale {
     IERC20 token
   ) public
     AllowanceCrowdsale(tokenWallet)
-    RefundableCrowdsale(goal)
+    SoftRefundableCrowdsale(goal, tokenWallet)
     TimedCrowdsale(openingTime, closingTime)
     Crowdsale(_calculateRate(tokenPrice, usdRate), targetWallet, token) {
       //
