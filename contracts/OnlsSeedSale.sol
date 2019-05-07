@@ -2,41 +2,46 @@ pragma solidity ^0.5.0;
 
 import "../lib/openzepplin/crowdsale/emission/AllowanceCrowdsale.sol";
 import "../lib/onlife/crowdsale/SoftRefundableCrowdsale.sol";
-import "../lib/openzepplin/crowdsale/validation/TimedCrowdsale.sol";
 
-contract OnlsSeedSale is AllowanceCrowdsale, SoftRefundableCrowdsale {
+contract OnlsSeedSale is SoftRefundableCrowdsale, AllowanceCrowdsale {
 
   constructor(
-    address tokenWallet,
+    address salesOwner,
+    address tokenOwner,
     uint256 tokenPrice,
     uint256 usdRate,
-    uint256 goal,
+    uint256 minGoal,
     uint256 openingTime,
+    uint256 unlockTime,
     uint256 closingTime,
-    address payable targetWallet,
+    address payable fundsWallet,
     IERC20 token
-  ) public
-    AllowanceCrowdsale(tokenWallet)
-    SoftRefundableCrowdsale(goal, tokenWallet)
+  ) Crowdsale(_calculateRate(tokenPrice, usdRate), fundsWallet, token)
     TimedCrowdsale(openingTime, closingTime)
-    Crowdsale(_calculateRate(tokenPrice, usdRate), targetWallet, token) {
-      //
-    }
+    FinalizableCrowdsale()
+    AllowanceCrowdsale(tokenOwner)
+    TimeLockedDeliveryCrowdsale(unlockTime)
+    SoftRefundableCrowdsale(minGoal, salesOwner)
+    public
+  {
+    //
+  }
+
+  function getTokenPrice() public view returns(uint256) {
+    return rate();
+  }
+
+  function getTokenPrice(uint256 amount) public view returns(uint256) {
+    return amount.mul(rate());
+  }
 
   function _calculateRate(uint256 tokenPrice, uint256 usdRate) internal pure returns (uint256) {
     return tokenPrice.mul(usdRate);
   }
 
   function _getTokenAmount(uint256 weiAmount) internal view returns (uint256) {
-    uint256 amount = weiAmount.div(rate());
     require(weiAmount.mod(rate()) == 0, 'invalid wei value passed');
+    uint256 amount = weiAmount.div(rate());
     return amount;
-  }
-
-  function _processPurchase(address beneficiary, uint256 tokenAmount) internal {
-    super._processPurchase(beneficiary, tokenAmount);
-    // TODO: can send remaining wei back to the sender in case wei value is not multiple to the rate
-    // uint256 remainder = (msg.value).mod(rate());
-    // (msg.sender).transfer(remainder);
   }
 }

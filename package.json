@@ -15,9 +15,10 @@
   "scripts": {
     "truffle": "truffle",
     "compile": "truffle compile",
-    "testrpc": "testrpc",
     "deploy": "truffle migrate --reset",
-    "test": "truffle test"
+    "test": "truffle test",
+    "console": "truffle console",
+    "testrpc": "testrpc"
   },
   "author": "PM:/",
   "license": "ISC"

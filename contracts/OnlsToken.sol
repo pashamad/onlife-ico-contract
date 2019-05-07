@@ -8,7 +8,7 @@ contract OnlsToken is ERC20, ERC20Detailed {
   uint8 public constant DECIMALS = 0;
   uint256 public constant INITIAL_SUPPLY = 1000000000;
 
-  constructor (address admin) public ERC20Detailed("Onlife Token", "ONLS", DECIMALS) {
-      _mint(admin, INITIAL_SUPPLY);
+  constructor (address owner) public ERC20Detailed("ONLife Sale", "ONLS", DECIMALS) {
+      _mint(owner, INITIAL_SUPPLY);
   }
 }
