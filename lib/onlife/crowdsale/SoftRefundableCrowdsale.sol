@@ -82,6 +82,10 @@ contract SoftRefundableCrowdsale is TimeLockedDeliveryCrowdsale {
     _raiseEscrow.withdraw();
   }
 
+  function changeBeneficiar(address payable beneficiar) public onlyOwner {
+    _raiseEscrow.changeBeneficiar(beneficiar);
+  }
+
   function _finalization() internal {
     // TODO: finalization logic in case token supply has been completely sold
     if (!goalReached()) {

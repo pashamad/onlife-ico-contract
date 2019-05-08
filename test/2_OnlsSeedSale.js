@@ -1,3 +1,5 @@
+const BN = require('bn.js');
+
 const { increaseTime } = require("../utils/increase-time");
 const { increaseBlock } = require("../utils/increase-block");
 
@@ -18,7 +20,7 @@ const minBuy = `${web3.utils.toWei(`${config.seed.minBuy * config.shared.usdEth}
 const unlockTime = config.seed.openingTime + config.seed.unlockDuration;
 const closingTime = config.seed.openingTime + config.seed.closingDuration;
 
-contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher]) => {
+contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet]) => {
 
   let token, crowdsale, tokensSold = 0, weiSpent = 0;
 
@@ -226,11 +228,61 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher]) => {
     });
   });
 
-  it('allows owner to change corporate wallet address');
+  it('allows owner to change corporate wallet address', () => {
+    let lastBalance, weiSpentSecondary;
+    return OnlsSeedSale.deployed().then(() => {
+      return web3.eth.getBalance(secondaryWallet);
+    }).then(bal => {
+      lastBalance = bal;
+      return crowdsale.changeBeneficiar(0x0, { from: admin });
+    }).then(assert.fail).catch(error => {
+      assert(error.message.indexOf('revert') >= 0, 'reverts on invalid address')
+      return crowdsale.changeBeneficiar(fundsWallet, { from: admin });
+    }).then(assert.fail).catch(error => {
+      assert(error.message.indexOf('revert') >= 0, 'reverts on same beneficiar')
+      return crowdsale.changeBeneficiar(secondaryWallet, { from: admin });
+    }).then(receipt => {
+      // @todo: check receipt event log
+      var tokensToBuy = Math.ceil(minBuy / tokenWeiPrice);
+      var weiToSend = tokensToBuy * tokenWeiPrice;
+      tokensSold += tokensToBuy;
+      weiSpentSecondary = weiToSend;
+      return crowdsale.sendTransaction({ value: weiToSend, from: buyer });
+    }).then(receipt => {
+      return crowdsale.withdraw({ from: admin });
+    }).then(receipt => {
+      return web3.eth.getBalance(secondaryWallet);
+    }).then(bal => {
+      let balBN = new BN(bal);
+      let lastBN = new BN(lastBalance);
+      let delta = balBN.sub(lastBN);
+      assert.equal(+toWei(delta), weiSpentSecondary, 'adds wei spent to secondary corporate wallet account');
+    });
+  });
 
-  it('forbids to withdraw tokens while tokens lock is active');
+  it('allows forced refunds by sales owner');
 
-  it('allows to withdraw tokens after the sale has been closed');
+  it('forbids to withdraw tokens while tokens lock is active', () => {
+    return OnlsSeedSale.deployed().then(() => {
+      return crowdsale.withdrawTokens(buyer, false);
+    }).then(assert.fail).catch(error => {
+      assert(error.message.indexOf('revert') >= 0, 'reverts on attempt to withdraw tokens');
+    });
+  });
+
+  it('allows to withdraw tokens after the sale has been closed', () => {
+    return OnlsSeedSale.deployed().then(() => {
+      return crowdsale.withdrawTokens(buyer, true);
+    }).then(receipt => {
+      // @todo: check receipt event log
+      return crowdsale.balanceOf(buyer);
+    }).then(amount => {
+      assert.equal(amount.toNumber(), 0, 'reduces buyer amount on sale contract to 0')
+      return token.balanceOf(buyer);
+    }).then(amount => {
+      assert.equal(amount.toNumber(), tokensSold, 'adds correct amount to token balance of buyer');
+    });
+  });
 
   // time dependant test
   it('allows refunds if the sale is closed and goal is not reached');
