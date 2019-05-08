@@ -108,7 +108,7 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher]) => {
       tokensToBuy = Math.ceil(remainingGoal / tokenWeiPrice);
       const weiToSend = tokensToBuy * tokenWeiPrice;
       tokensSold += tokensToBuy;
-      weiSpent += tokenWeiPrice * tokensToBuy;
+      weiSpent += weiToSend;
       return crowdsale.sendTransaction({ from: buyer, value: weiToSend });
     }).then(receipt => {
       assert.equal(receipt.logs.length, 1, 'triggers one event');
@@ -130,9 +130,9 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher]) => {
       return crowdsale.getUsdTokenAmount(config.seed.minBuy * 100 - 1);
     }).then(amount => {
       return crowdsale.getWeiTokenPrice(amount);
-    }).then(weiValue => {
-      let value = toWei(weiValue);
-      return crowdsale.sendTransaction({ from: buyer, value: value });
+    }).then(price => {
+      let weiToSend = +toWei(price);
+      return crowdsale.sendTransaction({ from: buyer, value: weiToSend });
     }).then(assert.fail).catch(error => {
       assert(error.message.indexOf('revert') >= 0, 'reverts when value is less than minimum');
     });
@@ -174,10 +174,11 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher]) => {
       return crowdsale.getUsdTokenAmount(config.seed.minBuy * 100);
     }).then(amount => {
       let tokensToBuy = amount.toNumber() + 1
-      let value = toWei(`${tokensToBuy * tokenWeiPrice}`);
+      let weiToSend = +toWei(`${tokensToBuy * tokenWeiPrice}`);
       tokensSold += tokensToBuy;
-      valueSpent = value;
-      return crowdsale.sendTransaction({ from: buyer, value: value });
+      valueSpent = weiToSend;
+      weiSpent += weiToSend
+      return crowdsale.sendTransaction({ from: buyer, value: weiToSend });
     }).then(receipt => {
       return crowdsale.raiseBalance();
     }).then(bal => {
@@ -188,10 +189,22 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher]) => {
     });
   });
 
-  it('shows correct values of wei raised and total balance');
+  it('shows correct values of wei raised and total balance', () => {
+    let weiRaised, totalBalance;
+    return OnlsSeedSale.deployed().then(() => {
+      return crowdsale.weiRaised();
+    }).then(raised => {
+      weiRaised = +toWei(raised);
+      return crowdsale.totalBalance();
+    }).then(bal => {
+      totalBalance = +toWei(bal);
+      assert.equal(totalBalance, weiSpent, 'total balance corresponst to wei spent');
+      assert.equal(weiRaised, weiSpent, 'wei raised corresponst to wei spent');
+    });
+  });
 
   it('allows owner to withdraw funds to corporate wallet', () => {
-    let lastBalance, weiRaised, totalBalance = 0;
+    let lastBalance, weiRaised;
     return OnlsSeedSale.deployed().then(() => {
       return crowdsale.weiRaised();
     }).then(raised => {
@@ -199,22 +212,17 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher]) => {
       return web3.eth.getBalance(fundsWallet);
     }).then(bal => {
       lastBalance = bal;
-      return crowdsale.goalBalance();
-    }).then(bal => {
-      totalBalance += +toWei(bal);
-      return crowdsale.raiseBalance();
-    }).then(bal => {
-      totalBalance += +toWei(bal);
       return crowdsale.withdraw({ from: admin });
     }).then(receipt => {
-      // @todo check logs event
+      // @todo: check receipt event log
       return web3.eth.getBalance(fundsWallet);
     }).then(bal => {
-      let delta = toWei(bal) - lastBalance;
-      // console.log(`delta bal: ${delta}`);
-      // console.log(`delta rai: ${weiRaised}`);
-      // console.log(`delta spe: ${weiSpent}`);
-      // assert.equal(delta, totalBalance, 'adds wei raised to corporate wallet account');
+      let currBalance = bal;
+      let delta = currBalance - lastBalance;
+      assert.equal(delta, weiRaised, 'adds wei raised to corporate wallet account');
+      return crowdsale.totalBalance();
+    }).then(bal => {
+      assert.equal(+toWei(bal), 0, 'reduces total balance to 0');
     });
   });
 

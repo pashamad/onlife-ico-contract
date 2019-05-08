@@ -49,6 +49,10 @@ contract SoftRefundableCrowdsale is TimeLockedDeliveryCrowdsale {
     return address(_raiseEscrow).balance;
   }
 
+  function totalBalance() public view returns(uint256) {
+    return goalBalance().add(raiseBalance());
+  }
+
   function releaseFunds() public onlyOwner {
     require(_fundsLock.isLocked(), 'funds are not locked');
     require(goalReached(), 'goal must be reached to unlock');
@@ -56,7 +60,7 @@ contract SoftRefundableCrowdsale is TimeLockedDeliveryCrowdsale {
 
     _fundsLock.unlock();
     _goalEscrow.close();
-    // TODO: is it possible to transfer goal balance to corporate escrow
+    // TODO: is it possible to transfer goal balance to corporate escrow?
   }
 
   function claimRefund(address payable refundee) public {
