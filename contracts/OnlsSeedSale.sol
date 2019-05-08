@@ -5,12 +5,21 @@ import "../lib/onlife/crowdsale/SoftRefundableCrowdsale.sol";
 
 contract OnlsSeedSale is SoftRefundableCrowdsale, AllowanceCrowdsale {
 
+  uint256 private _usdRate;
+  uint256 private _minBuy;
+
+  modifier minimalPurchaseValue {
+    require(msg.value >= _minBuy, 'minimal purchase value required');
+    _;
+  }
+
   constructor(
     address salesOwner,
     address tokenOwner,
     uint256 tokenPrice,
     uint256 usdRate,
     uint256 minGoal,
+    uint256 minBuy,
     uint256 openingTime,
     uint256 unlockTime,
     uint256 closingTime,
@@ -24,15 +33,27 @@ contract OnlsSeedSale is SoftRefundableCrowdsale, AllowanceCrowdsale {
     SoftRefundableCrowdsale(minGoal, salesOwner)
     public
   {
-    //
+    _usdRate = usdRate;
+    _minBuy = minBuy;
   }
 
-  function getTokenPrice() public view returns(uint256) {
-    return rate();
+  function getWeiTokenPrice(uint256 amount) public view returns(uint256) {
+    return rate().mul(amount);
   }
 
-  function getTokenPrice(uint256 amount) public view returns(uint256) {
-    return amount.mul(rate());
+  /**
+   * @dev returns price of amount of tokens in usd cents
+   */
+  function getUsdTokenPrice(uint256 amount) public view returns(uint256) {
+    return rate().div(_usdRate).mul(amount);
+  }
+
+  function getUsdTokenAmount(uint256 usdAmount) public view returns (uint256) {
+    return usdAmount.div(rate().div(_usdRate));
+  }
+
+  function getWeiTokenAmount(uint256 weiAmount) public view returns (uint256) {
+    return weiAmount.div(rate());
   }
 
   function _calculateRate(uint256 tokenPrice, uint256 usdRate) internal pure returns (uint256) {
@@ -43,5 +64,9 @@ contract OnlsSeedSale is SoftRefundableCrowdsale, AllowanceCrowdsale {
     require(weiAmount.mod(rate()) == 0, 'invalid wei value passed');
     uint256 amount = weiAmount.div(rate());
     return amount;
+  }
+
+  function _preValidatePurchase(address beneficiary, uint256 weiAmount) internal minimalPurchaseValue view {
+    super._preValidatePurchase(beneficiary, weiAmount);
   }
 }

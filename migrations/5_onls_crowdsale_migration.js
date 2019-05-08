@@ -7,6 +7,7 @@ const seedShare = config.shared.totalSupply / 100 * config.seed.sharePercent;
 const usdPrice = String(config.seed.usdPrice * 100);
 const usdEth = String(config.shared.usdEth * 1e16);
 const minGoal = `${web3.utils.toWei(`${config.seed.minGoal * config.shared.usdEth}`)}`;
+const minBuy = `${web3.utils.toWei(`${config.seed.minBuy * config.shared.usdEth}`)}`;
 const unlockTime = config.seed.openingTime + config.seed.unlockDuration;
 const closingTime = config.seed.openingTime + config.seed.closingDuration;
 
@@ -30,7 +31,8 @@ module.exports = function (deployer, network, accounts) {
       admin, // token owner account
       usdPrice, // price in cents per token
       usdEth, // usd to eth rate
-      minGoal, // min goal to release funds withdrawal
+      minGoal, // min goal in wei to release funds withdrawal
+      minBuy, // min amount of wei that can be spend on tokens
       config.seed.openingTime, // opening time of sales
       unlockTime, // time when the tokens will be released
       closingTime, // time when the sales will be closed

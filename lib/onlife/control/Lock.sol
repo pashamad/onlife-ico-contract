@@ -6,6 +6,8 @@ contract Lock is Secondary {
 
   enum LockState { Locked, Unlocked }
 
+  event LockStateChanged(LockState state);
+
   LockState private _state;
 
   constructor() public {
@@ -19,10 +21,14 @@ contract Lock is Secondary {
   function lock() public onlyPrimary {
     require(_state == LockState.Unlocked, 'already locked');
     _state = LockState.Locked;
+
+    emit LockStateChanged(LockState.Locked);
   }
 
   function unlock() public onlyPrimary {
     require(_state == LockState.Locked, 'not locked');
     _state = LockState.Unlocked;
+
+    emit LockStateChanged(LockState.Unlocked);
   }
 }

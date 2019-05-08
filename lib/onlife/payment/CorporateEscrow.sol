@@ -28,7 +28,7 @@ contract CorporateEscrow is Secondary, Ownable {
     emit Deposited(payer, amount);
   }
 
-  function withdraw() public onlyOwner {
+  function withdraw() public onlyPrimary {
     uint256 payment = _deposit;
     _deposit = 0;
 
