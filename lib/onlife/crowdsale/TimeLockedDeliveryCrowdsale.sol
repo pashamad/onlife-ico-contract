@@ -16,8 +16,8 @@ contract TimeLockedDeliveryCrowdsale is FinalizableCrowdsale, Ownable {
     _deliveryLock = new TimeLock(unlockTime);
   }
 
-  function withdrawTokens(address beneficiary, bool testAfermath) public {
-    require((testAfermath || !_deliveryLock.isLocked()), 'token delivery is locked');
+  function withdrawTokens(address beneficiary) public {
+    require(!_deliveryLock.isLocked(), 'token delivery is locked');
     uint256 amount = _balances[beneficiary];
     require(amount > 0, 'requires positive amount');
     _balances[beneficiary] = 0;
