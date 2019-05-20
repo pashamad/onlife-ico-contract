@@ -1,33 +1,26 @@
 const BN = require('bn.js');
 
-const { increaseTime } = require("../utils/increase-time");
-const { increaseBlock } = require("../utils/increase-block");
-
 const config = require('../config');
 const { toWei, fromWei } = require('../utils/eth');
 
 const OnlsToken = artifacts.require('./OnlsToken.sol');
-const OnlsSeedSale = artifacts.require('./OnlsSeedSale.sol');
+const OnlsCrowdsale = artifacts.require('./OnlsCrowdsale.sol');
 
-const SECONDS_IN_A_DAY = 86400;
-
-const seedShare = config.shared.totalSupply / 100 * config.seed.sharePercent;
-const usdPrice = String(config.seed.usdPrice * 100);
+const seedShare = config.shared.totalSupply / 100 * config.crowdsale.sharePercent;
+const usdPrice = String(config.crowdsale.usdPrice * 100);
 const usdEth = String(config.shared.usdEth * 1e16);
-const tokenWeiPrice = web3.utils.toWei(`${config.shared.usdEth * config.seed.usdPrice}`, 'ether');
-const minGoal = `${web3.utils.toWei(`${config.seed.minGoal * config.shared.usdEth}`)}`;
-const minBuy = `${web3.utils.toWei(`${config.seed.minBuy * config.shared.usdEth}`)}`;
-const unlockTime = config.seed.openingTime + config.seed.unlockDuration;
-const closingTime = config.seed.openingTime + config.seed.closingDuration;
+const tokenWeiPrice = web3.utils.toWei(`${config.shared.usdEth * config.crowdsale.usdPrice}`, 'ether');
+const minGoal = `${web3.utils.toWei(`${config.crowdsale.minGoal * config.shared.usdEth}`)}`;
+const minBuy = `${web3.utils.toWei(`${config.crowdsale.minBuy * config.shared.usdEth}`)}`;
 
-contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet]) => {
+contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
 
   let token, crowdsale, tokensSold = 0, weiSpent = 0;
 
   before(() => {
     OnlsToken.deployed().then(inst => {
       token = inst;
-      return OnlsSeedSale.deployed();
+      return OnlsCrowdsale.deployed();
     }).then(inst => {
       crowdsale = inst;
     });
@@ -35,7 +28,7 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
 
   it('initializes the seed contract with the correct values', () => {
 
-    return OnlsSeedSale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       assert.notEqual(crowdsale.address, 0x0, 'has contract address');
       return crowdsale.token();
     }).then(addr => {
@@ -53,7 +46,7 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
   });
 
   it('initializes correct amount of tokens for sale', () => {
-    return OnlsSeedSale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       return token.balanceOf(crowdsale.address);
     }).then(bal => {
       assert.equal(bal.toNumber(), 0, 'does not send any tokens to the contract');
@@ -71,7 +64,7 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
 
   it('allows to buy tokens and keeps them on the contract owner wallet', () => {
     let tokensToBuy;
-    return OnlsSeedSale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.sendTransaction({ from: buyer, value: tokenWeiPrice + 1 });
     }).then(assert.fail).catch((error) => {
       assert(error.message.indexOf('revert') >= 0, 'reverts when msg.value is not multiple of token price in wei');
@@ -100,7 +93,7 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
 
   it('forbids to withdraw funds before minimum goal is reached', () => {
     let tokensToBuy;
-    return OnlsSeedSale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.withdraw();
     }).then(assert.fail).catch(error => {
       assert(error.message.indexOf('revert') >= 0, 'reverts if not allowed');
@@ -128,8 +121,8 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
   it('allows owner to update exchange rate of usd to eth');
 
   it('does not allow to buy tokens for less than minimal amount of funds', () => {
-    OnlsSeedSale.deployed().then(() => {
-      return crowdsale.getUsdTokenAmount(config.seed.minBuy * 100 - 1);
+    OnlsCrowdsale.deployed().then(() => {
+      return crowdsale.getUsdTokenAmount(config.crowdsale.minBuy * 100 - 1);
     }).then(amount => {
       return crowdsale.getWeiTokenPrice(amount);
     }).then(price => {
@@ -140,10 +133,21 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
     });
   });
 
-  it('does not allow to buy tokens for more than maximum amount of funds (possibly redundant)');
+  it('does not allow to buy tokens for more than maximum amount of funds', () => {
+    OnlsCrowdsale.deployed().then(() => {
+      return crowdsale.getUsdTokenAmount(config.crowdsale.maxBuy * 100 + 1);
+    }).then(amount => {
+      return crowdsale.getWeiTokenPrice(amount);
+    }).then(price => {
+      let weiToSend = +toWei(price);
+      return crowdsale.sendTransaction({ from: buyer, value: weiToSend });
+    }).then(assert.fail).catch(error => {
+      assert(error.message.indexOf('revert') >= 0, 'reverts when value is more than maximum');
+    });
+  });
 
   it('allows to see the balance of both goal and raise escrows', () => {
-    return OnlsSeedSale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.goalBalance();
     }).then(bal => {
       assert.equal(toWei(bal), tokensSold * tokenWeiPrice, 'returns correct goal balance');
@@ -154,7 +158,7 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
   });
 
   it('allows owner to manually unlock funds withdrawal after goal has been reached', () => {
-    return OnlsSeedSale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.goal();
     }).then(goal => {
       return crowdsale.weiRaised();
@@ -169,11 +173,11 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
 
   it('sends funds to the raise escrow after goal has been reached', () => {
     let valueSpent, goalBalance;
-    return OnlsSeedSale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.goalBalance();
     }).then(bal => {
       goalBalance = toWei(bal);
-      return crowdsale.getUsdTokenAmount(config.seed.minBuy * 100);
+      return crowdsale.getUsdTokenAmount(config.crowdsale.minBuy * 100);
     }).then(amount => {
       let tokensToBuy = amount.toNumber() + 1
       let weiToSend = +toWei(`${tokensToBuy * tokenWeiPrice}`);
@@ -193,7 +197,7 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
 
   it('shows correct values of wei raised and total balance', () => {
     let weiRaised, totalBalance;
-    return OnlsSeedSale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.weiRaised();
     }).then(raised => {
       weiRaised = +toWei(raised);
@@ -207,7 +211,7 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
 
   it('allows owner to withdraw funds to corporate wallet', () => {
     let lastBalance, weiRaised;
-    return OnlsSeedSale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.weiRaised();
     }).then(raised => {
       weiRaised = toWei(raised);
@@ -230,7 +234,7 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
 
   it('allows owner to change corporate wallet address', () => {
     let lastBalance, weiSpentSecondary;
-    return OnlsSeedSale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       return web3.eth.getBalance(secondaryWallet);
     }).then(bal => {
       lastBalance = bal;
@@ -263,7 +267,7 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
   it('allows forced refunds by sales owner');
 
   it('forbids to withdraw tokens while tokens lock is active', () => {
-    return OnlsSeedSale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.withdrawTokens(buyer);
     }).then(assert.fail).catch(error => {
       assert(error.message.indexOf('revert') >= 0, 'reverts on attempt to withdraw tokens');
@@ -272,7 +276,7 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
 
   // TODO: time dependent test, passes with a test flag that disables timestamp check
   // it('allows to withdraw tokens after the sale has been closed', () => {
-  //   return OnlsSeedSale.deployed().then(() => {
+  //   return OnlsCrowdsale.deployed().then(() => {
   //     return crowdsale.withdrawTokens(buyer);
   //   }).then(receipt => {
   //     // @todo: check receipt event log
@@ -290,8 +294,8 @@ contract('OnlsSeedSale', ([_, admin, fundsWallet, buyer, fisher, secondaryWallet
 
   // TODO: time dependent test
   // it('controls sale opening and closing times', () => {
-  //   return OnlsSeedSale.deployed().then(() => {
-  //     return increaseTime(config.seed.closingDuration + SECONDS_IN_A_DAY);
+  //   return OnlsCrowdsale.deployed().then(() => {
+  //     return increaseTime(config.crowdsale.closingDuration + SECONDS_IN_A_DAY);
   //   }).then((r) => {
   //     return crowdsale.sendTransaction({ from: buyer, value: tokenWeiPrice });
   //   }).then(assert.fail).catch(error => {

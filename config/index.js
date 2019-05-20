@@ -1,7 +1,7 @@
 const shared = require('./shared');
-const seed = require('./seed');
+const crowdsale = require('./crowdsale');
 
 module.exports = {
   shared,
-  seed
+  crowdsale
 };

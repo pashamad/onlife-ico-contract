@@ -1,15 +1,15 @@
 const OnlsToken = artifacts.require("../contracts/OnlsToken");
-const OnlsSeedSale = artifacts.require("../contracts/OnlsSeedSale");
+const OnlsCrowdsale = artifacts.require("../contracts/OnlsCrowdsale");
 
 const config = require('../config');
 
-const seedShare = config.shared.totalSupply / 100 * config.seed.sharePercent;
-const usdPrice = String(config.seed.usdPrice * 100);
-const usdEth = String(config.shared.usdEth * 1e16);
-const minGoal = `${web3.utils.toWei(`${config.seed.minGoal * config.shared.usdEth}`)}`;
-const minBuy = `${web3.utils.toWei(`${config.seed.minBuy * config.shared.usdEth}`)}`;
-const unlockTime = config.seed.openingTime + config.seed.unlockDuration;
-const closingTime = config.seed.openingTime + config.seed.closingDuration;
+const seedShare = String(config.shared.totalSupply / 100 * config.crowdsale.sharePercent);
+const usdPrice = String(config.crowdsale.usdPrice * 100);
+const usdRate = web3.utils.toWei(String(config.shared.usdRate / 100), 'ether');
+
+const minPurchase = String(config.crowdsale.minPurchase * 100);
+const maxPurchase = String(config.crowdsale.maxPurchase * 100);
+const minGoal = web3.utils.toBN(web3.utils.toWei(String(config.crowdsale.minGoal * config.shared.usdRate), 'ether'));
 
 module.exports = function (deployer, network, accounts) {
 
@@ -26,16 +26,14 @@ module.exports = function (deployer, network, accounts) {
     return tokenInstance.address;
   }).then(tokenAddress => {
     return deployer.deploy(
-      OnlsSeedSale,
+      OnlsCrowdsale,
       admin, // sales owner account
       admin, // token owner account
-      usdPrice, // price in cents per token
-      usdEth, // usd to eth rate
-      minGoal, // min goal in wei to release funds withdrawal
-      minBuy, // min amount of wei that can be spend on tokens
-      config.seed.openingTime, // opening time of sales
-      unlockTime, // time when the tokens will be released
-      closingTime, // time when the sales will be closed
+      usdPrice, // price in USD cents per token
+      usdRate, // usd to eth rate in WEI
+      minPurchase, // minimum purchase in USD cents
+      maxPurchase, // maximum purchase in USD cents
+      minGoal, // min goal in WEI to release funds withdrawal (softcap)
       fundsWallet, // wallet to send raised funds to
       tokenAddress // address of the token contract
     );

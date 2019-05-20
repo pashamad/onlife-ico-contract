@@ -1,23 +1,15 @@
 pragma solidity ^0.5.0;
 
 import "../../openzepplin/ownership/Ownable.sol";
-import "../../openzepplin/crowdsale/distribution/FinalizableCrowdsale.sol";
+import "./FinalizableCrowdsale.sol";
+import "../control/Lockable.sol";
 
-import "../control/TimeLock.sol";
-
-contract TimeLockedDeliveryCrowdsale is FinalizableCrowdsale, Ownable {
+contract LockedDeliveryCrowdsale is FinalizableCrowdsale, Ownable, Lockable {
   using SafeMath for uint256;
 
   mapping(address => uint256) private _balances;
 
-  TimeLock private _deliveryLock;
-
-  constructor(uint256 unlockTime) public {
-    _deliveryLock = new TimeLock(unlockTime);
-  }
-
-  function withdrawTokens(address beneficiary) public {
-    require(!_deliveryLock.isLocked(), 'token delivery is locked');
+  function withdrawTokens(address beneficiary) public onlyWhenUnlocked {
     uint256 amount = _balances[beneficiary];
     require(amount > 0, 'requires positive amount');
     _balances[beneficiary] = 0;

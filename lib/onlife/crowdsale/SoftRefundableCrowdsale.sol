@@ -4,9 +4,9 @@ import "../../openzepplin/payment/escrow/RefundEscrow.sol";
 
 import "../control/Lock.sol";
 import "../payment/CorporateEscrow.sol";
-import "./TimeLockedDeliveryCrowdsale.sol";
+import "./LockedDeliveryCrowdsale.sol";
 
-contract SoftRefundableCrowdsale is TimeLockedDeliveryCrowdsale {
+contract SoftRefundableCrowdsale is LockedDeliveryCrowdsale {
 
   using SafeMath for uint256;
 
@@ -26,7 +26,6 @@ contract SoftRefundableCrowdsale is TimeLockedDeliveryCrowdsale {
     _raiseEscrow = new CorporateEscrow(wallet());
     _raiseEscrow.transferOwnership(salesOwner);
 
-    // TODO: best to pass payable address of the raise escrow
     _goalEscrow = new RefundEscrow(wallet());
     _minGoal = minGoal;
 
@@ -56,16 +55,15 @@ contract SoftRefundableCrowdsale is TimeLockedDeliveryCrowdsale {
   function releaseFunds() public onlyOwner {
     require(_fundsLock.isLocked(), 'funds are not locked');
     require(goalReached(), 'goal must be reached to unlock');
-    require(isOpen(), 'crowdsale must be open to unlock');
+    require(!finalized(), 'crowdsale must be open to unlock');
 
     _fundsLock.unlock();
     _goalEscrow.close();
-    // TODO: is it possible to transfer goal balance to corporate escrow?
   }
 
   function claimRefund(address payable refundee) public {
     require(finalized(), 'no refunds before sale is closed');
-    require(!goalReached(), 'no refunds on successful sale');
+    require(!goalReached(), 'no refunds after soft cap');
 
     _goalEscrow.withdraw(refundee);
     releaseTokens(refundee);
@@ -78,7 +76,7 @@ contract SoftRefundableCrowdsale is TimeLockedDeliveryCrowdsale {
       _goalEscrow.beneficiaryWithdraw();
     }
 
-    // allow to withdraw zero balance for testing purposes
+    // allows to withdraw zero balance for testing purposes
     _raiseEscrow.withdraw();
   }
 
