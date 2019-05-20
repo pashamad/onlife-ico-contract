@@ -3,5 +3,5 @@ module.exports = {
   tokenSymbol: 'ONLS',
   tokenDecimals: 0,
   totalSupply: 1000000000,
-  usdRate: 0.0041
+  usdRate: 0.003975
 };

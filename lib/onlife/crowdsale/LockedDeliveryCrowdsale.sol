@@ -9,6 +9,10 @@ contract LockedDeliveryCrowdsale is FinalizableCrowdsale, Ownable, Lockable {
 
   mapping(address => uint256) private _balances;
 
+  constructor() internal {
+    lock();
+  }
+
   function withdrawTokens(address beneficiary) public onlyWhenUnlocked {
     uint256 amount = _balances[beneficiary];
     require(amount > 0, 'requires positive amount');

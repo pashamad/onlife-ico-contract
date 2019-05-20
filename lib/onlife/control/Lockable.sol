@@ -20,11 +20,11 @@ contract Lockable is Secondary {
     return _lock.isLocked();
   }
 
-  function lock() public onlyPrimary {
+  function lock() internal onlyPrimary {
     _lock.lock();
   }
 
-  function unlock() public onlyPrimary {
+  function unlock() internal onlyPrimary {
     _lock.unlock();
   }
 }
