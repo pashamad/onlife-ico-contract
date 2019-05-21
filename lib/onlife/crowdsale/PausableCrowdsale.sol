@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "../Crowdsale.sol";
-import "../../lifecycle/Pausable.sol";
+import "./Crowdsale.sol";
+import "../control/Pausable.sol";
 
 /**
  * @title PausableCrowdsale
