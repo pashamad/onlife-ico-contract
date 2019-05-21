@@ -1,13 +1,13 @@
 pragma solidity ^0.5.0;
 
 import "./Crowdsale.sol";
+import "../../openzepplin/ownership/Ownable.sol";
 
 /**
  * @title FinalizableCrowdsale
- * @dev Extension of Crowdsale with a one-off finalization action, where one
- * can do extra work after finishing.
+ * @dev Provides finalized state for derived contracts, as well as a method to define some finalization logic.
  */
-contract FinalizableCrowdsale is Crowdsale {
+contract FinalizableCrowdsale is Crowdsale, Ownable {
     using SafeMath for uint256;
 
     bool private _finalized;
@@ -26,12 +26,10 @@ contract FinalizableCrowdsale is Crowdsale {
     }
 
     /**
-     * @dev Must be called after crowdsale ends, to do some extra finalization
-     * work. Calls the contract's finalization function.
+     * @dev Switches crowdsale to finalized state. Only owner can call this method. Emits CrowdsaleFinalized event.
      */
-    function finalize() public {
-        require(!_finalized, 'already finalized');
-        // require(hasClosed());
+    function finalize() public onlyOwner {
+        require(!_finalized, 'crowdsale already finalized');
 
         _finalized = true;
 

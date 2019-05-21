@@ -3,6 +3,10 @@ pragma solidity ^0.5.0;
 import "../../openzepplin/ownership/Secondary.sol";
 import "./Lock.sol";
 
+/**
+ * @title Lockable
+ * @dev Provides locked state to derived contracts.
+ */
 contract Lockable is Secondary {
 
   Lock private _lock;

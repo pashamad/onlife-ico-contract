@@ -106,7 +106,7 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
 
   it('forbids to unlock contract before minimum goal has been reached', () => {
     return OnlsCrowdsale.deployed().then(() => {
-      return crowdsale.releaseFunds({ from: admin });
+      return crowdsale.unlockFunds({ from: admin });
     }).then(assert.fail).catch(error => {
       assert(error.message.indexOf('revert') >= 0, 'reverts on unlock attempt');
     });
@@ -134,9 +134,9 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     });
   });
 
-
   it('allows owner to update exchange rate of usd to eth', () => {
 
+    // TODO: also test that min-max purchase values are correct with the new rate
     const newUsdRateEth = 0.0025;
     const newUsdRate = toBN(
       toWei(String(Math.floor(newUsdRateEth * 1000000000)), 'ether')
@@ -203,10 +203,10 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
       return crowdsale.weiRaised();
     }).then(raised => {
       // @todo test error from non-owner account
-      return crowdsale.releaseFunds({ from: admin });
+      return crowdsale.unlockFunds({ from: admin });
     }).then((receipt) => {
       // @todo: check receipt event log
-      assert.equal(true, true, 'releases funds without error');
+      assert.equal(true, true, 'unlocks funds without error');
     });
   });
 

@@ -2,6 +2,10 @@ pragma solidity ^0.5.0;
 
 import "../../openzepplin/ownership/Secondary.sol";
 
+/**
+ * @title Lock
+ * @dev Basic lock contract
+ */
 contract Lock is Secondary {
 
   enum LockState { Locked, Unlocked }

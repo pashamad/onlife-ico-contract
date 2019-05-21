@@ -4,12 +4,8 @@ import "../../openzepplin/ownership/Secondary.sol";
 import "../../openzepplin/ownership/Ownable.sol";
 
 /**
- * @dev corporate escrow to hold funds before withdrawal to corporate wallet
- *
- * @dev in case to be able to allow more flex access control to deposit and withdraw methods,
- * it should be deployed as a standalone contract; then the list of depositors and the owner
- * can hold different addresses; also, it would make it possible to attach one escrow to
- * different contracts
+ * @title CorporateEscrow
+ * @dev Corporate escrow to hold funds before withdrawal to corporate wallet
  */
 contract CorporateEscrow is Secondary, Ownable {
 
@@ -23,12 +19,19 @@ contract CorporateEscrow is Secondary, Ownable {
     _beneficiar = beneficiar;
   }
 
+  /**
+   * @dev Put some funds to the escrow. Emit Deposited event.
+   * @param payer payer address
+   */
   function deposit(address payer) public onlyPrimary payable {
     uint256 amount = msg.value;
 
     emit Deposited(payer, amount);
   }
 
+  /**
+   * @dev Withdraw funds to stored wallet address. Emits Withdrawn event.
+   */
   function withdraw() public onlyPrimary {
     uint256 payment = address(this).balance;
 
@@ -37,6 +40,9 @@ contract CorporateEscrow is Secondary, Ownable {
     emit Withdrawn(_beneficiar, payment);
   }
 
+  /**
+   * @dev Change beneficiar wallet address. Emits BeneficiarChanged event.
+   */
   function changeBeneficiar(address payable beneficiar) public onlyPrimary {
     require(beneficiar != address(0), 'invalid beneficiar address');
     require(beneficiar != _beneficiar, 'beneficiar address is unchaged');
