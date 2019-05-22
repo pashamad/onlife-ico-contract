@@ -4,7 +4,7 @@ Repository for developing and testing ITO smart-contracts.
 
 #### OnlsCrowdsale contract
 
-  Main crowdsale contract. Base features:
+Main crowdsale contract. Base features:
   - does not transfer tokens to the contract account, but approves respective amount to be sold
   - implements post-delivery functionality, meaning that tokens are not transfered to purchaser account right away, but instead are put to purchaser balance inside the contract
   - locks collected funds and sold tokens, disallowing to withdraw them while in locked state
