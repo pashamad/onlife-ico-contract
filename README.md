@@ -36,13 +36,13 @@ npm i
 
 ## Compile and deploy
 
-#### Compile
+### Compile
 
 ```
 npm run compile
 ```
 
-#### Test deployment
+### Test deployment
 
 Run Ganache and then execute
 
@@ -52,13 +52,13 @@ npm run deploy
 
 This will compile and deploy contracts to a private development network.
 
-#### Production deployment
+### Production deployment
 
 *Not implemented*
 
 ## Testing
 
-#### Autotests
+### Autotests
 
 Deploy contracts to a development network as described before and then execute
 
