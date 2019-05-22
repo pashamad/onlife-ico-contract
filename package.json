@@ -1,6 +1,6 @@
 {
-  "name": "eth-test",
-  "version": "0.1.0",
+  "name": "onlife-ico-contracts",
+  "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "dependencies": {
