@@ -1,36 +1,22 @@
 const OnlsToken = artifacts.require("../contracts/OnlsToken");
 const OnlsCrowdsale = artifacts.require("../contracts/OnlsCrowdsale");
 
-// const { toWei, fromWei, toBN } = require('../utils/eth');
-// const BN = require('bn.js');
-// const web3 = require('web3.js');
+const { calculateUsdRate } = require('../utils/usd-rate');
 
 const config = require('../config');
 
-const seedShare = String(config.shared.totalSupply / 100 * config.crowdsale.sharePercent);
-const usdPrice = String(config.crowdsale.usdPrice * 100);
-// const usdRate = web3.utils.toWei(String(config.shared.usdRate / 100), 'ether');
-// const ux1000 = Math.floor(config.shared.usdRate * 1000000000);
-// console.log(`ux100: ${ux1000}`);
-// const uxBn = web3.utils.toBN(String(ux1000));
-// console.log(`uxBn: ${uxBn.toNumber()}`);
-// const uxW = web3.utils.toWei(uxBn, 'ether');
-// console.log(`uxW: ${uxW}`);
-// const ud1000 = web3.utils.toBN('100000000000');
-// const urcW = web3.utils.toBN(uxW).div(ud1000);
-// console.log(`urcW: ${urcW.toNumber()}`);
-
-// console.log(`ud1000: ${ud1000.toNumber()}`);
-// const urBn = uxBn.div(ud1000);
-// console.log(`urBn: ${urBn.toNumber()}`);
-const usdRate = web3.utils.toBN(
-  web3.utils.toWei(String(Math.floor(config.shared.usdRate * 1000000000)), 'ether')
-).div(web3.utils.toBN('100000000000'));
-// console.log(`usdRate: ${usdRate.toNumber()}`);
-
-const minPurchase = String(config.crowdsale.minPurchase * 100);
-const maxPurchase = String(config.crowdsale.maxPurchase * 100);
-const minGoal = web3.utils.toBN(web3.utils.toWei(String(config.crowdsale.minGoal * config.shared.usdRate), 'ether'));
+// amount of tokens provided for crowdsale
+const seedShare = config.shared.totalSupply / 100 * config.crowdsale.sharePercent;
+// price of token in USD cents
+const usdPrice = config.crowdsale.usdPrice * 100;
+// BigNumber of WEI cost of 1 USD cent
+const usdRate = calculateUsdRate(config.shared.usdRate, web3.utils);
+// minimal allowed purchase in USD cents
+const minPurchase = config.crowdsale.minPurchase * 100;
+// maximal allowed purchase in USD cents
+const maxPurchase = config.crowdsale.maxPurchase * 100;
+// BigNumber of WEI required to raise to be able to unlock sales contract (softcap)
+const minGoal = usdRate.mul(web3.utils.toBN(config.crowdsale.minGoal * 100));
 
 module.exports = function (deployer, network, accounts) {
 
@@ -54,7 +40,7 @@ module.exports = function (deployer, network, accounts) {
       usdRate, // usd to eth rate in WEI
       minPurchase, // minimum purchase in USD cents
       maxPurchase, // maximum purchase in USD cents
-      minGoal, // min goal in WEI to release funds withdrawal (softcap)
+      minGoal, // min goal in WEI to unlock funds withdrawal (softcap)
       fundsWallet, // wallet to send raised funds to
       tokenAddress // address of the token contract
     );

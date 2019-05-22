@@ -1,22 +1,31 @@
 const BN = require('bn.js');
 
 const config = require('../config');
-const { toWei, fromWei, toBN } = require('../utils/eth');
+const { toWei, toBN } = require('../utils/eth');
+const { calculateUsdRate } = require('../utils/usd-rate');
 
 const OnlsToken = artifacts.require('./OnlsToken.sol');
 const OnlsCrowdsale = artifacts.require('./OnlsCrowdsale.sol');
 
+// amount of tokens provided for crowdsale
 const seedShare = config.shared.totalSupply / 100 * config.crowdsale.sharePercent;
+// price of token in USD cents
 const usdPrice = config.crowdsale.usdPrice * 100;
-const usdRate = toBN(
-  toWei(String(Math.floor(config.shared.usdRate * 1000000000)), 'ether')
-).div(toBN('100000000000'));
-
+// BigNumber of WEI cost of 1 USD cent
+const usdRate = calculateUsdRate(config.shared.usdRate, web3.utils);
+// minimal allowed purchase in USD cents
 const minPurchase = config.crowdsale.minPurchase * 100;
+// maximal allowed purchase in USD cents
 const maxPurchase = config.crowdsale.maxPurchase * 100;
-const minGoal = toBN(web3.utils.toWei(String(config.crowdsale.minGoal * config.shared.usdRate), 'ether'));
+// BigNumber of WEI required to raise to be able to unlock sales contract (softcap)
+const minGoal = usdRate.mul(web3.utils.toBN(config.crowdsale.minGoal * 100));
+// price of token in WEI (mutable for testing purposes)
 let tokenWeiPrice = usdRate.mul(toBN(usdPrice));
 
+
+// miscellaneous
+// random ETHUSDT rate to test that updating usd rate in contract works correctly
+const newUsdRate = calculateUsdRate(350.00, web3.utils);
 
 contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
 
@@ -136,19 +145,25 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
 
   it('allows owner to update exchange rate of usd to eth', () => {
 
-    // TODO: also test that min-max purchase values are correct with the new rate
-    const newUsdRateEth = 0.0025;
-    const newUsdRate = toBN(
-      toWei(String(Math.floor(newUsdRateEth * 1000000000)), 'ether')
-    ).div(toBN('100000000000'));
-
     return OnlsCrowdsale.deployed().then(() => {
-      tokenWeiPrice = newUsdRate.mul(toBN(usdPrice));
       return crowdsale.updateUsdRate(toWei(newUsdRate), { from: admin });
     }).then(receipt => {
       assert.equal(receipt.logs.length, 2, 'triggers two events');
       assert.equal(receipt.logs[0].event, 'UsdRateUpdated', 'should emit the "UsdRateUpdated" event');
-      assert.equal(receipt.logs[1].event, 'TokenRateUpdated', 'should emit the "TokensPurchased" event');
+      assert.equal(receipt.logs[1].event, 'TokenRateUpdated', 'should emit the "TokenRateUpdated" event');
+      return crowdsale.getUsdRate();
+    }).then(rate => {
+      assert.equal(String(toWei(rate)), String(toWei(newUsdRate)), 'returns correct usd rate after update');
+      return crowdsale.rate();
+    }).then(rate => {
+      assert.equal(String(toWei(rate)), String(toWei(newUsdRate.mul(toBN(usdPrice)))), 'returns correct token wei cost after update');
+      // changing rate back to original so that to keep further tests consistent
+      return crowdsale.updateUsdRate(toWei(usdRate), { from: admin });
+    }).then(receipt => {
+      assert.equal(receipt.logs.length, 2, 'successfully updates rate back to original');
+      return crowdsale.getUsdRate();
+    }).then(rate => {
+      assert.equal(String(toWei(rate)), String(toWei(usdRate)), 'returns correct rate after update');
     });
   });
 
@@ -302,34 +317,5 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
   });
 
   it('allows forced refunds by sales owner');
-
-  // TODO: time dependent test, passes with a test flag that disables timestamp check
-  // it('allows to withdraw tokens after the sale has been closed', () => {
-  //   return OnlsCrowdsale.deployed().then(() => {
-  //     return crowdsale.withdrawTokens(buyer);
-  //   }).then(receipt => {
-  //     // @todo: check receipt event log
-  //     return crowdsale.balanceOf(buyer);
-  //   }).then(amount => {
-  //     assert.equal(amount.toNumber(), 0, 'reduces buyer amount on sale contract to 0')
-  //     return token.balanceOf(buyer);
-  //   }).then(amount => {
-  //     assert.equal(amount.toNumber(), tokensSold, 'adds correct amount to token balance of buyer');
-  //   });
-  // });
-
-  // TODO: time dependent test
   it('allows refunds if the sale is closed and goal is not reached');
-
-  // TODO: time dependent test
-  // it('controls sale opening and closing times', () => {
-  //   return OnlsCrowdsale.deployed().then(() => {
-  //     return increaseTime(config.crowdsale.closingDuration + SECONDS_IN_A_DAY);
-  //   }).then((r) => {
-  //     return crowdsale.sendTransaction({ from: buyer, value: tokenWeiPrice });
-  //   }).then(assert.fail).catch(error => {
-  //     assert(error.message.indexOf('revert') >= 0, 'reverts when trying to buy tokens after sale has been closed');
-  //   });
-  // });
-
 });
