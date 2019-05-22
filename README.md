@@ -1,6 +1,6 @@
 ## Description
 
-Repository for developing and testing ICO smart-contracts.
+Repository for developing and testing ITO smart-contracts.
 
 #### OnlsCrowdsale contract
 
@@ -33,29 +33,34 @@ Repository for developing and testing ICO smart-contracts.
 npm i
 ```
 
-## Compile
+## Compile and deploy
+
+#### Compile
 
 ```
 npm run compile
 ```
 
-## Testing
+#### Test deployment
 
-### Manual testing
-
-1. Run test rpc server
+Run Ganache and then execute
 
 ```
-npm run testrpc
+npm run deploy
 ```
 
-2. Deploy contracts there
-   
-```
-npm run test-deploy
-```
+This will compile and deploy contracts to a private development network.
 
-### Autotests
+#### Production deployment
 
 *Not implemented*
 
+## Testing
+
+#### Autotests
+
+Deploy contracts to a development network as described before and then execute
+
+```
+npm test
+```
