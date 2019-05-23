@@ -1,6 +1,7 @@
 const OnlsToken = artifacts.require("../contracts/OnlsToken");
 const OnlsCrowdsale = artifacts.require("../contracts/OnlsCrowdsale");
 
+const { getMigrateAccounts } = require('../utils/get-migrate-accounts');
 const { calculateUsdRate } = require('../utils/usd-rate');
 
 const config = require('../config');
@@ -20,48 +21,30 @@ const minGoal = usdRate.mul(web3.utils.toBN(config.crowdsale.minGoal * 100));
 
 module.exports = function (deployer, network, accounts) {
 
-  const migrateConfig = config.migrate.ropsten;
-  let admin, fundsWallet;
-
-  switch (network) {
-    case 'development': {
-      [
-        admin,
-        fundsWallet
-      ] = accounts.slice(1);
-      break;
-    }
-    case 'ropsten': {
-      admin = migrateConfig.accounts.admin;
-      fundsWallet = migrateConfig.accounts.fundsWallet;
-      break;
-    }
-    default: {
-      throw new Error(`Invalid network name ${network}`);
-    }
-  }
+  ({ migrateAccount, salesOwner, fundsWallet } = getMigrateAccounts(network, accounts, config.migrate));
 
   let tokenInstance;
   let seedInstance;
 
-  deployer.deploy(OnlsToken, admin).then(instance => {
+  deployer.deploy(OnlsToken, salesOwner, { from: migrateAccount }).then(instance => {
     tokenInstance = instance;
     return tokenInstance.address;
   }).then(tokenAddress => {
     return deployer.deploy(
       OnlsCrowdsale,
-      admin, // sales owner account
-      admin, // token owner account
+      salesOwner, // sales owner account
+      salesOwner, // token owner account
       usdPrice, // price in USD cents per token
       usdRate, // usd to eth rate in WEI
       minPurchase, // minimum purchase in USD cents
       maxPurchase, // maximum purchase in USD cents
       minGoal, // min goal in WEI to unlock funds withdrawal (softcap)
       fundsWallet, // wallet to send raised funds to
-      tokenAddress // address of the token contract
+      tokenAddress, // address of the token contract
+      { from: migrateAccount }
     );
   }).then(instance => {
     seedInstance = instance;
-    return tokenInstance.approve(seedInstance.address, seedShare, { from: admin });
+    return tokenInstance.approve(seedInstance.address, seedShare, { from: salesOwner });
   });
 };
