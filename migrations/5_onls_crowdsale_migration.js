@@ -20,10 +20,26 @@ const minGoal = usdRate.mul(web3.utils.toBN(config.crowdsale.minGoal * 100));
 
 module.exports = function (deployer, network, accounts) {
 
-  const [
-    admin,
-    fundsWallet
-  ] = accounts.slice(1);
+  const migrateConfig = config.migrate.ropsten;
+  let admin, fundsWallet;
+
+  switch (network) {
+    case 'development': {
+      [
+        admin,
+        fundsWallet
+      ] = accounts.slice(1);
+      break;
+    }
+    case 'ropsten': {
+      admin = migrateConfig.accounts.admin;
+      fundsWallet = migrateConfig.accounts.fundsWallet;
+      break;
+    }
+    default: {
+      throw new Error(`Invalid network name ${network}`);
+    }
+  }
 
   let tokenInstance;
   let seedInstance;

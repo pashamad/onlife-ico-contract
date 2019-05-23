@@ -1,7 +1,7 @@
 module.exports = {
   sharePercent: 12.75,
   usdPrice: 0.1,
-  minGoal: 100,
+  minGoal: 1000,
   minPurchase: 10,
-  maxPurchase: 200
+  maxPurchase: 500
 };
