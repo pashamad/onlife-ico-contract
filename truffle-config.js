@@ -23,6 +23,11 @@ const HDWalletProvider = require('truffle-hdwallet-provider');
 const mnemonic = 'seek able busy blame vanish toy chief home iron tooth quantum timber two congress galaxy';
 const INFURA_PROJECT_ID = '589168f868db4676a745c4e489b22841';
 
+const privateKeys = [
+  "d1ce44d2c34bfdba837ba6ffedda1ef455d810d64d1c7ba53f3764c8134b0bd1",
+  "0e8d546e194807cb4eda81fae3dff5d1afd7a30a60a5faee957c904195439e41",
+];
+
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
@@ -44,17 +49,17 @@ module.exports = {
     development: {
       host: "127.0.0.1",     // Localhost (default: none)
       port: 8545,            // Standard Ethereum port (default: none)
-      network_id: "*"       // Any network (default: none)
+      network_id: "*",       // Any network (default: none)
     },
 
     onlifedev: {
       host: "s1.onlifedev.net",     // Localhost (default: none)
       port: 8545,            // Standard Ethereum port (default: none)
-      network_id: "*"       // Any network (default: none)
+      network_id: "*",       // Any network (default: none)
     },
 
     ropsten: {
-      provider: () => new HDWalletProvider(mnemonic, `https://ropsten.infura.io/v3/${INFURA_PROJECT_ID}`),
+      provider: () => new HDWalletProvider(privateKeys, "http://s1.onlifedev.net:8545", 0, 2),
       network_id: 3,       // Ropsten's id
       gas: 5500000,        // Ropsten has a lower block limit than mainnet
       confirmations: 2,    // # of confs to wait between deployments. (default: 0)
@@ -101,13 +106,13 @@ module.exports = {
     solc: {
       // version: "0.5.1",    // Fetch exact version from solc-bin (default: truffle's version)
       // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
-      // settings: {          // See the solidity docs for advice about optimization and evmVersion
-      //  optimizer: {
-      //    enabled: false,
-      //    runs: 200
-      //  },
-      //  evmVersion: "byzantium"
-      // }
+      settings: {          // See the solidity docs for advice about optimization and evmVersion
+        optimizer: {
+          enabled: true,
+          runs: 200
+        },
+        evmVersion: "byzantium"
+      }
     }
   }
 }

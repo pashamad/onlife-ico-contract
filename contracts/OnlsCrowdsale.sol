@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "../lib/onlife/crowdsale/AllowanceCrowdsale.sol";
-import "../lib/onlife/crowdsale/SoftRefundableCrowdsale.sol";
+import "../lib/crowdsale/AllowanceCrowdsale.sol";
+import "../lib/crowdsale/SoftRefundableCrowdsale.sol";
 
 /**
   * @title OnlsCrowdsale

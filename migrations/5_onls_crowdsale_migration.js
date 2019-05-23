@@ -41,7 +41,7 @@ module.exports = function (deployer, network, accounts) {
       minGoal, // min goal in WEI to unlock funds withdrawal (softcap)
       fundsWallet, // wallet to send raised funds to
       tokenAddress, // address of the token contract
-      { from: migrateAccount }
+      { from: migrateAccount, gas: 6721975 }
     );
   }).then(instance => {
     seedInstance = instance;
