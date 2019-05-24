@@ -4,7 +4,7 @@ module.exports.getMigrateAccounts = function getMigrateAccounts(network, account
 
   switch (network) {
     case 'development': {
-      ({ migrateAccount, salesOwner, fundsWallet } = config.development.accounts);
+      [migrateAccount, salesOwner, fundsWallet] = accounts.slice(1);
       break;
     }
     case 'onlifedev':

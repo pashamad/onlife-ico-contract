@@ -10,6 +10,7 @@
   "devDependencies": {
     "ethereumjs-testrpc": "^6.0.3",
     "ganache-cli": "^6.4.3",
+    "lite-server": "^2.5.3",
     "openzeppelin-solidity": "2.1.3",
     "truffle": "^5.0.15",
     "truffle-flattener": "^1.3.0",
@@ -23,7 +24,8 @@
     "deploy-onlifedev": "truffle migrate --network onlifedev --reset",
     "deploy-ropsten": "truffle migrate --network ropsten",
     "console": "truffle console",
-    "testrpc": "testrpc"
+    "testrpc": "testrpc",
+    "serve": "lite-server"
   },
   "author": "PM:/",
   "license": "ISC"
