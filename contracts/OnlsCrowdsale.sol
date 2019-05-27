@@ -2,6 +2,7 @@ pragma solidity ^0.5.0;
 
 import "../lib/crowdsale/AllowanceCrowdsale.sol";
 import "../lib/crowdsale/SoftRefundableCrowdsale.sol";
+import "./OnlsToken.sol";
 
 /**
   * @title OnlsCrowdsale
@@ -80,8 +81,8 @@ contract OnlsCrowdsale is SoftRefundableCrowdsale, AllowanceCrowdsale {
     uint256 maxPurchaseUsd,
     uint256 minGoal,
     address payable fundsWallet,
-    IERC20 token
-  ) Crowdsale(tokenPriceUsd.mul(usdRate), fundsWallet, token)
+    OnlsToken token
+  ) Crowdsale(tokenPriceUsd.mul(usdRate).div(10 ** uint256(token.decimals())), fundsWallet, token)
     FinalizableCrowdsale()
     AllowanceCrowdsale(tokenOwner)
     SoftRefundableCrowdsale(minGoal, salesOwner)
@@ -158,13 +159,17 @@ contract OnlsCrowdsale is SoftRefundableCrowdsale, AllowanceCrowdsale {
 
   /**
    * @dev Internal implementation of getWeiTokenAmount public method.
-   * Throws an exception if wei amount passed is not a multiple of token wei price.
+   * IMPORTANT: this method returns amount in smallest token units, which is defined by a decimal token part.
+   * This behaviour differs from public methods that return amount of whole tokens that can be bought for passed amount of wei.
    * @param weiAmount value in wei
    * @return amount of tokens
    */
   function _getTokenAmount(uint256 weiAmount) internal view returns (uint256) {
-    require(weiAmount.mod(rate()) == 0, 'invalid wei value passed');
-    uint256 amount = weiAmount.div(rate());
+    uint256 amount = weiAmount.div(rate()).mul(10**uint256(token().decimals()));
+    // if the amount wei is not exact multiple of token rate, adds one token on on top
+    if (weiAmount.mod(rate()) != 0) {
+      amount += 1;
+    }
     return amount;
   }
 

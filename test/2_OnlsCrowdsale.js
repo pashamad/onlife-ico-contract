@@ -20,7 +20,9 @@ const maxPurchase = config.crowdsale.maxPurchase * 100;
 // BigNumber of WEI required to raise to be able to unlock sales contract (softcap)
 const minGoal = usdRate.mul(web3.utils.toBN(config.crowdsale.minGoal * 100));
 // price of token in WEI (mutable for testing purposes)
-let tokenWeiPrice = usdRate.mul(toBN(usdPrice));
+let tokenWeiPrice = usdRate.mul(toBN(usdPrice)).div(toBN(10 ** config.shared.tokenDecimals));
+// total supply in the smallest indivisible units (considering decimals)
+const grandTotal = toBN(config.shared.totalSupply).mul(toBN(10 ** config.shared.tokenDecimals));
 
 
 // miscellaneous
@@ -52,7 +54,7 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
       assert.equal(addr, fundsWallet, 'sets funds wallet to correct address');
       return crowdsale.rate();
     }).then(rate => {
-      assert.equal(rate.toNumber(), tokenWeiPrice, 'sets correct token rate in wei');
+      assert.equal(rate.toString(), tokenWeiPrice.toString(), 'sets correct token rate in wei');
       return crowdsale.goal();
     }).then(goal => {
       assert.equal(web3.utils.fromWei(goal, 'wei'), minGoal, 'sets correct goal value');
@@ -66,7 +68,7 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
       assert.equal(bal.toNumber(), 0, 'does not send any tokens to the contract');
       return token.balanceOf(admin);
     }).then(bal => {
-      assert.equal(bal.toNumber(), config.shared.totalSupply, 'keeps all the tokens to token owner account');
+      assert.equal(bal.toString(), grandTotal.toString(), 'keeps all the tokens to token owner account');
       return token.allowance(admin, crowdsale.address);
     }).then(allowance => {
       assert.equal(allowance.toNumber(), seedShare, 'sets correct allowance for seed contract');
@@ -79,13 +81,11 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
   it('allows to buy tokens and keeps them on the contract owner wallet', () => {
     let tokensToBuy;
     return OnlsCrowdsale.deployed().then(() => {
-      return crowdsale.sendTransaction({ from: buyer, value: tokenWeiPrice + 1 });
-    }).then(assert.fail).catch((error) => {
-      assert(error.message.indexOf('revert') >= 0, 'reverts when msg.value is not multiple of token price in wei');
-      tokensToBuy = Math.ceil(minPurchase / usdPrice);
+      tokensToBuy = toBN(Math.ceil(minPurchase / usdPrice)).mul(toBN(10 ** 8));
       tokensSold += tokensToBuy;
-      weiSpent = weiSpent.add(tokenWeiPrice.mul(toBN(tokensToBuy)));
-      return crowdsale.sendTransaction({ from: buyer, value: tokenWeiPrice * tokensToBuy });
+      const weiToSend = tokenWeiPrice.mul(tokensToBuy);
+      weiSpent = weiSpent.add(weiToSend);
+      return crowdsale.sendTransaction({ from: buyer, value: weiToSend });
     }).then(receipt => {
       assert.equal(receipt.logs.length, 1, 'triggers one event');
       assert.equal(receipt.logs[0].event, 'TokensPurchased', 'should be the "TokensPurchased" event');
@@ -95,7 +95,7 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
       assert.equal(receipt.logs[0].args.amount.toNumber(), tokensToBuy, 'logs the amount of purchased tokens');
       return crowdsale.balanceOf(buyer);
     }).then(bal => {
-      assert.equal(bal.toNumber(), tokensSold, 'adds correct amount of tokens to buyer balance on the crowdsale contract');
+      assert.equal(bal.toNumber(), tokensSold * 10 ** config.shared.tokenDecimals, 'adds correct amount of tokens to buyer balance on the crowdsale contract');
       return crowdsale.weiRaised();
     }).then(wei => {
       assert.equal(toWei(wei), tokenWeiPrice * tokensSold, 'adds buy value to raised amount of wei');

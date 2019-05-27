@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "../token/ERC20/IERC20.sol";
+import "../token/ERC20/ERC20Detailed.sol";
 import "../math/SafeMath.sol";
 import "../token/ERC20/SafeERC20.sol";
 import "../utils/ReentrancyGuard.sol";
@@ -19,18 +19,18 @@ import "../utils/ReentrancyGuard.sol";
  */
 contract Crowdsale is ReentrancyGuard {
     using SafeMath for uint256;
-    using SafeERC20 for IERC20;
+    using SafeERC20 for ERC20Detailed;
 
     // The token being sold
-    IERC20 private _token;
+    ERC20Detailed private _token;
 
     // Address where funds are collected
     address payable private _wallet;
 
-    // How many token units a buyer gets per wei.
-    // The rate is the conversion between wei and the smallest and indivisible token unit.
-    // So, if you are using a rate of 1 with a ERC20Detailed token with 3 decimals called TOK
-    // 1 wei will give you 1 unit, or 0.001 TOK.
+    // How many wei a buyer pays per token.
+    // The rate is the conversion between the smallest and indivisible token unit and wei.
+    // So, if you are using a rate of 4000000 with a ERC20Detailed token with 8 decimals called TOK
+    // 4000000 wei will give you 1 unit, or 0.00000001 TOK.
     uint256 private _rate;
 
     // Amount of wei raised
@@ -49,13 +49,13 @@ contract Crowdsale is ReentrancyGuard {
 
     /**
      * @param rate Number of token units a buyer gets per wei
-     * @dev The rate is the conversion between wei and the smallest and indivisible
-     * token unit. So, if you are using a rate of 1 with a ERC20Detailed token
-     * with 3 decimals called TOK, 1 wei will give you 1 unit, or 0.001 TOK.
+     * @dev The rate is the conversion between the smallest and indivisible token unit and wei.
+     * So, if you are using a rate of 4000000 with a ERC20Detailed token with 8 decimals called TOK
+     * 4000000 wei will give you 1 unit, or 0.00000001 TOK.
      * @param wallet Address where collected funds will be forwarded to
      * @param token Address of the token being sold
      */
-    constructor (uint256 rate, address payable wallet, IERC20 token) public {
+    constructor (uint256 rate, address payable wallet, ERC20Detailed token) public {
         require(rate > 0, 'invalid rate');
         require(wallet != address(0), 'invalid funds wallet address');
         require(address(token) != address(0), 'invalid token address');
@@ -78,7 +78,7 @@ contract Crowdsale is ReentrancyGuard {
     /**
      * @return the token being sold.
      */
-    function token() public view returns (IERC20) {
+    function token() public view returns (ERC20Detailed) {
         return _token;
     }
 

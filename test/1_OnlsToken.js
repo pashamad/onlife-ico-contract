@@ -1,6 +1,10 @@
 const OnlsToken = artifacts.require('./OnlsToken.sol');
 
+const { toWei, toBN } = require('../utils/eth');
+
 const config = require('../config');
+
+const grandTotal = toBN(config.shared.totalSupply).mul(toBN(10 ** config.shared.tokenDecimals));
 
 contract('OnlsToken', (accounts) => {
 
@@ -21,10 +25,10 @@ contract('OnlsToken', (accounts) => {
       assert.equal(symbol, config.shared.tokenSymbol);
       return tokenInstance.decimals();
     }).then((decimals) => {
-      assert.equal(decimals, config.shared.tokenDecimals);
+      assert.equal(decimals.toNumber(), config.shared.tokenDecimals);
       return tokenInstance.totalSupply();
     }).then(totalSupply => {
-      assert.equal(totalSupply.toNumber(), config.shared.totalSupply, 'has correct total supply');
+      assert.equal(totalSupply.toString(), grandTotal.toString(), 'has correct total supply');
       return tokenInstance.balanceOf(admin);
     });
   });
@@ -34,7 +38,7 @@ contract('OnlsToken', (accounts) => {
       tokenInstance = instance;
       return tokenInstance.balanceOf(admin);
     }).then(adminBalance => {
-      assert.equal(adminBalance.toNumber(), config.shared.totalSupply, 'admin account has all the tokens');
+      assert.equal(adminBalance.toString(), grandTotal.toString(), 'admin account has all the tokens');
     });
   });
 });

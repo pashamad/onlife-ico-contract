@@ -8,8 +8,8 @@ const decimals = 8;
  */
 module.exports.calculateUsdRate = function toWei(r, utils) {
 
-  const factor = Number(`1${'0'.repeat(decimals)}`);
-  const baseRate = utils.toBN(String(Number(r) * factor));
+  const factor = 10 ** decimals;
+  const baseRate = utils.toBN(Math.floor(r * factor));
   const eth = utils.toBN(utils.toWei('1', 'ether'));
   const perCent = utils.toBN(100);
   const usdRate = eth.div(baseRate).mul(utils.toBN(factor)).div(perCent);
