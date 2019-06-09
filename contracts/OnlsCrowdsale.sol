@@ -95,8 +95,8 @@ contract OnlsCrowdsale is SoftRefundableCrowdsale, AllowanceCrowdsale {
     _maxPurchaseUsd = maxPurchaseUsd;
 
     // mutable state variables, will be updated on usd rate change
-    _minPurchaseWei = _minPurchaseUsd.mul(_usdRate);
-    _maxPurchaseWei = _maxPurchaseUsd.mul(_usdRate);
+    _minPurchaseWei = _minPurchaseUsd.div(_tokenPriceUsd).mul(rate()).mul(10 ** uint256(token.decimals()));
+    _maxPurchaseWei = _maxPurchaseUsd.div(_tokenPriceUsd).mul(rate()).mul(10 ** uint256(token.decimals()));
   }
 
   /**
@@ -106,12 +106,12 @@ contract OnlsCrowdsale is SoftRefundableCrowdsale, AllowanceCrowdsale {
    */
   function updateUsdRate(uint256 usdRate) public onlyOwner {
     _usdRate = usdRate;
-    _minPurchaseWei = _minPurchaseUsd.mul(_usdRate);
-    _maxPurchaseWei = _maxPurchaseUsd.mul(_usdRate);
+    _updateRate(_tokenPriceUsd.mul(_usdRate).div(10 ** uint256(token().decimals())));
+
+    _minPurchaseWei = _minPurchaseUsd.div(_tokenPriceUsd).mul(rate()).mul(10 ** uint256(token().decimals()));
+    _maxPurchaseWei = _maxPurchaseUsd.div(_tokenPriceUsd).mul(rate()).mul(10 ** uint256(token().decimals()));
 
     emit UsdRateUpdated(_usdRate, _minPurchaseWei, _maxPurchaseWei);
-
-    _updateRate(_tokenPriceUsd.mul(_usdRate));
   }
 
   /**
@@ -157,6 +157,10 @@ contract OnlsCrowdsale is SoftRefundableCrowdsale, AllowanceCrowdsale {
     return usdAmount.div(_tokenPriceUsd);
   }
 
+  function getMinPurchaseWei() public view returns (uint256) {
+    return _minPurchaseWei;
+  }
+
   /**
    * @dev Internal implementation of getWeiTokenAmount public method.
    * IMPORTANT: this method returns amount in smallest token units, which is defined by a decimal token part.
@@ -165,8 +169,8 @@ contract OnlsCrowdsale is SoftRefundableCrowdsale, AllowanceCrowdsale {
    * @return amount of tokens
    */
   function _getTokenAmount(uint256 weiAmount) internal view returns (uint256) {
-    uint256 amount = weiAmount.div(rate()).mul(10**uint256(token().decimals()));
-    // if the amount wei is not exact multiple of token rate, adds one token on on top
+    uint256 amount = weiAmount.div(rate());
+    // if the amount wei is not exact multiple of token rate, adds one token on top
     if (weiAmount.mod(rate()) != 0) {
       amount += 1;
     }

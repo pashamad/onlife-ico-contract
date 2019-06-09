@@ -80,28 +80,33 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
 
   it('allows to buy tokens and keeps them on the contract owner wallet', () => {
     let tokensToBuy;
+    let minPurchaseWei;
     return OnlsCrowdsale.deployed().then(() => {
-      tokensToBuy = toBN(Math.ceil(minPurchase / usdPrice)).mul(toBN(10 ** 8));
+      return crowdsale.getMinPurchaseWei();
+    }).then(_minPurchaseWei => {
+      minPurchaseWei = _minPurchaseWei;
+      return crowdsale.getWeiTokenAmount(minPurchaseWei);
+    }).then(_tokensToBuy => {
+      tokensToBuy = _tokensToBuy.toNumber();
       tokensSold += tokensToBuy;
-      const weiToSend = tokenWeiPrice.mul(tokensToBuy);
-      weiSpent = weiSpent.add(weiToSend);
-      return crowdsale.sendTransaction({ from: buyer, value: weiToSend });
+      weiSpent = weiSpent.add(minPurchaseWei);
+      return crowdsale.sendTransaction({ from: buyer, value: minPurchaseWei });
     }).then(receipt => {
       assert.equal(receipt.logs.length, 1, 'triggers one event');
       assert.equal(receipt.logs[0].event, 'TokensPurchased', 'should be the "TokensPurchased" event');
       assert.equal(receipt.logs[0].args.purchaser, buyer, 'logs the account of purchaser');
       assert.equal(receipt.logs[0].args.beneficiary, buyer, 'logs the account of beneficiary');
-      assert.equal(toWei(receipt.logs[0].args.value), tokenWeiPrice * tokensToBuy, 'logs the amount spent in wei');
+      assert.equal(toWei(receipt.logs[0].args.value.toString()), minPurchaseWei.toString(), 'logs the amount spent in wei');
       assert.equal(receipt.logs[0].args.amount.toNumber(), tokensToBuy, 'logs the amount of purchased tokens');
       return crowdsale.balanceOf(buyer);
     }).then(bal => {
-      assert.equal(bal.toNumber(), tokensSold * 10 ** config.shared.tokenDecimals, 'adds correct amount of tokens to buyer balance on the crowdsale contract');
+      assert.equal(bal.toNumber(), tokensSold, 'adds correct amount of tokens to buyer balance on the crowdsale contract');
       return crowdsale.weiRaised();
     }).then(wei => {
-      assert.equal(toWei(wei), tokenWeiPrice * tokensSold, 'adds buy value to raised amount of wei');
+      assert.equal(wei.toString(), minPurchaseWei.toString(), 'adds buy value to raised amount of wei');
       return crowdsale.remainingTokens();
     }).then(remaining => {
-      assert.equal(toWei(remaining), seedShare, 'does not deduct tokens from token owner account');
+      assert.equal(remaining.toString(), seedShare.toString(), 'does not deduct tokens from token owner account');
     });
   });
 
@@ -122,18 +127,16 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
   });
 
   it('returns goalReached = true after minimum goal has been reached', () => {
-    let tokensToBuy;
+    let remainingGoal;
     return OnlsCrowdsale.deployed().then(() => {
-      return crowdsale.goal();
-    }).then((raised) => {
       return crowdsale.weiRaised();
     }).then((raised) => {
-      const remainingGoal = minGoal.sub(raised);
-      tokensToBuy = Math.ceil(remainingGoal.div(tokenWeiPrice).toNumber());
-      const weiToSend = tokenWeiPrice.mul(toBN(tokensToBuy));
+      remainingGoal = minGoal.sub(raised);
+      return crowdsale.getWeiTokenAmount(remainingGoal);
+    }).then((tokensToBuy) => {
       tokensSold += tokensToBuy;
-      weiSpent = weiSpent.add(weiToSend);
-      return crowdsale.sendTransaction({ from: buyer, value: toWei(weiToSend) });
+      weiSpent = weiSpent.add(remainingGoal);
+      return crowdsale.sendTransaction({ from: buyer, value: remainingGoal });
     }).then(receipt => {
       assert.equal(receipt.logs.length, 1, 'triggers one event');
       assert.equal(receipt.logs[0].event, 'TokensPurchased', 'should be the "TokensPurchased" event');
@@ -146,24 +149,25 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
   it('allows owner to update exchange rate of usd to eth', () => {
 
     return OnlsCrowdsale.deployed().then(() => {
-      return crowdsale.updateUsdRate(toWei(newUsdRate), { from: admin });
+      return crowdsale.updateUsdRate(newUsdRate, { from: admin });
     }).then(receipt => {
       assert.equal(receipt.logs.length, 2, 'triggers two events');
-      assert.equal(receipt.logs[0].event, 'UsdRateUpdated', 'should emit the "UsdRateUpdated" event');
-      assert.equal(receipt.logs[1].event, 'TokenRateUpdated', 'should emit the "TokenRateUpdated" event');
+      assert.equal(receipt.logs[0].event, 'TokenRateUpdated', 'should emit the "TokenRateUpdated" event');
+      assert.equal(receipt.logs[1].event, 'UsdRateUpdated', 'should emit the "UsdRateUpdated" event');
       return crowdsale.getUsdRate();
     }).then(rate => {
       assert.equal(String(toWei(rate)), String(toWei(newUsdRate)), 'returns correct usd rate after update');
       return crowdsale.rate();
     }).then(rate => {
-      assert.equal(String(toWei(rate)), String(toWei(newUsdRate.mul(toBN(usdPrice)))), 'returns correct token wei cost after update');
+      assert.equal(rate.toString(), newUsdRate.mul(toBN(usdPrice)).div(toBN(10 ** config.shared.tokenDecimals)).toString(),
+        'returns correct token wei cost after update');
       // changing rate back to original so that to keep further tests consistent
-      return crowdsale.updateUsdRate(toWei(usdRate), { from: admin });
+      return crowdsale.updateUsdRate(usdRate, { from: admin });
     }).then(receipt => {
       assert.equal(receipt.logs.length, 2, 'successfully updates rate back to original');
       return crowdsale.getUsdRate();
     }).then(rate => {
-      assert.equal(String(toWei(rate)), String(toWei(usdRate)), 'returns correct rate after update');
+      assert.equal(rate.toString(), usdRate.toString(), 'returns correct rate after update');
     });
   });
 
@@ -231,21 +235,21 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
       return crowdsale.goalBalance();
     }).then(bal => {
       goalBalance = bal;
-      return crowdsale.getUsdTokenAmount(minPurchase);
-    }).then(amount => {
-      let tokensToBuy = amount.toNumber() + 1
-      const weiToSend = tokenWeiPrice.mul(toBN(tokensToBuy));
-      tokensSold += tokensToBuy;
-      valueSpent = weiToSend;
-      weiSpent = weiSpent.add(weiToSend);
-      return crowdsale.sendTransaction({ from: buyer, value: toWei(weiToSend) });
+      return crowdsale.getMinPurchaseWei();
+    }).then(_minPurchase => {
+      valueSpent = _minPurchase;
+      return crowdsale.sendTransaction({ from: buyer, value: _minPurchase });
     }).then(receipt => {
+      assert.equal(receipt.logs.length, 1, 'triggers one event');
+      assert.equal(receipt.logs[0].event, 'TokensPurchased', 'should be the "TokensPurchased" event');
+      tokensSold += receipt.logs[0].args.amount.toNumber();
+      weiSpent = weiSpent.add(valueSpent);
       return crowdsale.raiseBalance();
     }).then(bal => {
-      assert.equal(String(toWei(bal)), String(toWei(valueSpent)), 'raise balance should be equal to value spent');
+      assert.equal(bal.toString(), valueSpent.toString(), 'raise balance should be equal to value spent');
       return crowdsale.goalBalance();
     }).then(bal => {
-      assert.equal(String(toWei(bal)), String(toWei(goalBalance)), 'goal balance should not increase');
+      assert.equal(bal.toString(), goalBalance, 'goal balance should not increase');
     });
   });
 
