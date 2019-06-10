@@ -366,7 +366,23 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     });
   });
 
-  it('allows buyer to withdraw tokens to personal wallet');
+  it('allows buyer to withdraw tokens to personal wallet', () => {
+    let _lastBal, _salesBal, _tokenSold = 0;
+    return OnlsCrowdsale.deployed().then(() => {
+      return token.balanceOf(buyer);
+    }).then(bal => {
+      _lastBal = bal;
+      return crowdsale.balanceOf(buyer);
+    }).then(bal => {
+      _salesBal = bal;
+      return crowdsale.withdrawTokens(buyer, { from: buyer });
+    }).then(result => {
+      assert.equal(result.receipt.rawLogs.length, 2, 'triggers exactly two events from internal contracts');
+      return token.balanceOf(buyer);
+    }).then(bal => {
+      assert.equal(bal.toString(), _lastBal.add(_salesBal).toString(), 'current balance of buyer must be equal to amount of tokens bought');
+    });
+  });
 
   it('allows forced refunds by sales owner');
   it('allows refunds if the sale is closed and goal is not reached');
