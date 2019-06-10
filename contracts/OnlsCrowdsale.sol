@@ -49,7 +49,9 @@ contract OnlsCrowdsale is SoftRefundableCrowdsale, AllowanceCrowdsale {
 
   // maximum purchase guard
   modifier maximumPurchaseValue {
-    require(msg.value <= _maxPurchaseWei, 'maximum purchase value exceeded');
+    uint256 spent = balanceOf(msg.sender).mul(rate());
+    spent = spent.add(token().balanceOf(msg.sender).mul(rate()));
+    require(spent.add(msg.value) <= _maxPurchaseWei, 'maximum purchase value exceeded');
     _;
   }
 
@@ -159,6 +161,10 @@ contract OnlsCrowdsale is SoftRefundableCrowdsale, AllowanceCrowdsale {
 
   function getMinPurchaseWei() public view returns (uint256) {
     return _minPurchaseWei;
+  }
+
+  function getMaxPurchaseWei() public view returns (uint256) {
+    return _maxPurchaseWei;
   }
 
   /**

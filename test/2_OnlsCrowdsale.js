@@ -147,7 +147,6 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
   });
 
   it('allows owner to update exchange rate of usd to eth', () => {
-
     return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.updateUsdRate(newUsdRate, { from: admin });
     }).then(receipt => {
@@ -184,12 +183,18 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     });
   });
 
-  it('does not allow to buy tokens for more than maximum amount of funds', () => {
+  it('does not allow to buy tokens for more than maximum amount of funds before contract unlock', () => {
+    let currBal, currBalWei;
     OnlsCrowdsale.deployed().then(() => {
-      const maxTokens = maxPurchase / usdPrice;
-      return crowdsale.getWeiTokenPrice(maxTokens + 1);
-    }).then(price => {
-      let weiToSend = toWei(price);
+      return crowdsale.balanceOf(buyer);
+    }).then(bal => {
+      currBal = bal;
+      return crowdsale.getWeiTokenPrice(currBal);
+    }).then(wei => {
+      currBalWei = wei;
+      return crowdsale.getMaxPurchaseWei();
+    }).then(max => {
+      let weiToSend = max.sub(currBalWei).add(toBN(1));
       return crowdsale.sendTransaction({ from: buyer, value: weiToSend });
     }).then(assert.fail).catch(error => {
       assert(error.message.indexOf('revert') >= 0, 'reverts when value is more than maximum');
@@ -211,6 +216,7 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.withdrawTokens(buyer);
     }).then(assert.fail).catch(error => {
+      assert.notEmpty(error.message, 'must be an error object with a message');
       assert(error.message.indexOf('revert') >= 0, 'reverts on attempt to withdraw tokens');
     });
   });
@@ -319,6 +325,28 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
       assert.equal(String(toWei(delta)), String(toWei(weiSpentSecondary)), 'adds wei spent to secondary corporate wallet account');
     });
   });
+
+  it('sends tokens directly to buyer wallet after contract unlock');
+
+  it('does not allow to buy tokens for more than maximum amount of funds when tokens are both on deposit and a buyer wallet', () => {
+    let currBal, currBalWei;
+    OnlsCrowdsale.deployed().then(() => {
+      return crowdsale.balanceOf(buyer);
+    }).then(bal => {
+      currBal = bal;
+      return crowdsale.getWeiTokenPrice(currBal);
+    }).then(wei => {
+      currBalWei = wei;
+      return crowdsale.getMaxPurchaseWei();
+    }).then(max => {
+      let weiToSend = max.sub(currBalWei).add(toBN(1));
+      return crowdsale.sendTransaction({ from: buyer, value: weiToSend });
+    }).then(assert.fail).catch(error => {
+      assert(error.message.indexOf('revert') >= 0, 'reverts when value is more than maximum');
+    });
+  });
+
+  it('allows buyer to withdraw tokens to personal wallet');
 
   it('allows forced refunds by sales owner');
   it('allows refunds if the sale is closed and goal is not reached');
