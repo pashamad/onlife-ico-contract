@@ -83,10 +83,15 @@ contract LockedDeliveryCrowdsale is FinalizableCrowdsale {
 
   /**
    * @dev Implements token purchase without actually transferring tokens to purchaser account.
+   * Once the contract is unlocked, it start to send tokens directly through the parent method.
    * @param beneficiary purchaser account address
    * @param tokenAmount amount of tokens purchased
    */
   function _processPurchase(address beneficiary, uint256 tokenAmount) internal {
-    _balances[beneficiary] = _balances[beneficiary].add(tokenAmount);
+    if (isLocked()) {
+      _balances[beneficiary] = _balances[beneficiary].add(tokenAmount);
+    } else {
+      _deliverTokens(beneficiary, tokenAmount);
+    }
   }
 }

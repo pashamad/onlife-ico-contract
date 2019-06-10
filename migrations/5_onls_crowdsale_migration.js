@@ -45,6 +45,7 @@ module.exports = function (deployer, network, accounts) {
     );
   }).then(instance => {
     seedInstance = instance;
-    return tokenInstance.approve(seedInstance.address, seedShare, { from: salesOwner });
+    const share = web3.utils.toBN(seedShare).mul(web3.utils.toBN(10 ** config.shared.tokenDecimals));
+    return tokenInstance.approve(seedInstance.address, share, { from: salesOwner });
   });
 };

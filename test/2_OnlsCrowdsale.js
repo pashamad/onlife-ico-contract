@@ -8,7 +8,8 @@ const OnlsToken = artifacts.require('./OnlsToken.sol');
 const OnlsCrowdsale = artifacts.require('./OnlsCrowdsale.sol');
 
 // amount of tokens provided for crowdsale
-const seedShare = config.shared.totalSupply / 100 * config.crowdsale.sharePercent;
+const seedShare = toBN(config.shared.totalSupply / 100 * config.crowdsale.sharePercent)
+  .mul(toBN(10 ** config.shared.tokenDecimals));
 // price of token in USD cents
 const usdPrice = config.crowdsale.usdPrice * 100;
 // BigNumber of WEI cost of 1 USD cent
@@ -71,10 +72,10 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
       assert.equal(bal.toString(), grandTotal.toString(), 'keeps all the tokens to token owner account');
       return token.allowance(admin, crowdsale.address);
     }).then(allowance => {
-      assert.equal(allowance.toNumber(), seedShare, 'sets correct allowance for seed contract');
+      assert.equal(allowance.toString(), seedShare.toString(), 'sets correct allowance for seed contract');
       return crowdsale.remainingTokens();
     }).then(remaining => {
-      assert.equal(remaining.toNumber(), seedShare, 'shows correct value of remaining tokens');
+      assert.equal(remaining.toString(), seedShare.toString(), 'shows correct value of remaining tokens');
     });
   });
 
@@ -134,7 +135,7 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
       remainingGoal = minGoal.sub(raised);
       return crowdsale.getWeiTokenAmount(remainingGoal);
     }).then((tokensToBuy) => {
-      tokensSold += tokensToBuy;
+      tokensSold += tokensToBuy.toNumber();
       weiSpent = weiSpent.add(remainingGoal);
       return crowdsale.sendTransaction({ from: buyer, value: remainingGoal });
     }).then(receipt => {
@@ -185,7 +186,7 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
 
   it('does not allow to buy tokens for more than maximum amount of funds before contract unlock', () => {
     let currBal, currBalWei;
-    OnlsCrowdsale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.balanceOf(buyer);
     }).then(bal => {
       currBal = bal;
@@ -221,17 +222,19 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     });
   });
 
-  it('allows owner to manually unlock funds withdrawal after goal has been reached', () => {
+  it('does not allow to unlock crowdsale from non-owner account');
+
+  it('allows owner to manually unlock crowdsale withdrawal after goal has been reached', () => {
     return OnlsCrowdsale.deployed().then(() => {
-      return crowdsale.goal();
-    }).then(goal => {
-      return crowdsale.weiRaised();
-    }).then(raised => {
-      // @todo test error from non-owner account
+      return crowdsale.isLocked();
+    }).then(isLocked => {
+      assert.equal(isLocked, true, 'isLocked must be false before unlock');
       return crowdsale.unlockFunds({ from: admin });
-    }).then((receipt) => {
-      // @todo: check receipt event log
-      assert.equal(true, true, 'unlocks funds without error');
+    }).then((result) => {
+      assert.equal(result.receipt.rawLogs.length, 2, 'triggers exactly two events from internal contracts');
+      return crowdsale.isLocked();
+    }).then(isLocked => {
+      assert.equal(isLocked, false, 'isLocked must be false after unlock');
     });
   });
 
@@ -326,11 +329,28 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     });
   });
 
-  it('sends tokens directly to buyer wallet after contract unlock');
+  it('sends tokens directly to buyer wallet after contract unlock', () => {
+    let _lastBal, _tokenSold = 0;
+    return OnlsCrowdsale.deployed().then(() => {
+      return token.balanceOf(buyer);
+    }).then(bal => {
+      _lastBal = bal;
+      return crowdsale.getMinPurchaseWei();
+    }).then(min => {
+      return crowdsale.sendTransaction({ from: buyer, value: min });
+    }).then(receipt => {
+      assert.equal(receipt.logs.length, 1, 'triggers one event');
+      assert.equal(receipt.logs[0].event, 'TokensPurchased', 'should be the "TokensPurchased" event');
+      tokensSold += _tokenSold = receipt.logs[0].args.amount.toNumber();
+      return token.balanceOf(buyer);
+    }).then(bal => {
+      assert.equal(bal.toString(), _lastBal.add(toBN(_tokenSold)).toString(), 'current balance of buyer must be equal to amount of tokens sold in this transaction');
+    })
+  });
 
   it('does not allow to buy tokens for more than maximum amount of funds when tokens are both on deposit and a buyer wallet', () => {
     let currBal, currBalWei;
-    OnlsCrowdsale.deployed().then(() => {
+    return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.balanceOf(buyer);
     }).then(bal => {
       currBal = bal;
