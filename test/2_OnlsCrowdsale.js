@@ -215,14 +215,20 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
 
   it('forbids to withdraw tokens while tokens lock is active', () => {
     return OnlsCrowdsale.deployed().then(() => {
-      return crowdsale.withdrawTokens(buyer);
+      return crowdsale.withdrawTokens(buyer, { from: admin });
     }).then(assert.fail).catch(error => {
       assert.notEmpty(error.message, 'must be an error object with a message');
       assert(error.message.indexOf('revert') >= 0, 'reverts on attempt to withdraw tokens');
     });
   });
 
-  it('does not allow to unlock crowdsale from non-owner account');
+  it('does not allow to unlock crowdsale from non-owner account', () => {
+    return OnlsCrowdsale.deployed().then(() => {
+      return crowdsale.unlockFunds({ from: buyer });
+    }).then(assert.fail).catch(error => {
+      assert(error.message.indexOf('revert') >= 0, 'reverts if not an owner');
+    });
+  });
 
   it('allows owner to manually unlock crowdsale withdrawal after goal has been reached', () => {
     return OnlsCrowdsale.deployed().then(() => {
@@ -329,12 +335,15 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     });
   });
 
-  it('sends tokens directly to buyer wallet after contract unlock', () => {
-    let _lastBal, _tokenSold = 0;
+  it('does not send tokens directly to buyer wallet but keeps them on crowdsale contract even after unlock', () => {
+    let _lastTokenBal, _lastSaleBal, _tokenSold = 0;
     return OnlsCrowdsale.deployed().then(() => {
       return token.balanceOf(buyer);
     }).then(bal => {
-      _lastBal = bal;
+      _lastTokenBal = bal;
+      return crowdsale.balanceOf(buyer);
+    }).then(bal => {
+      _lastSaleBal = bal;
       return crowdsale.getMinPurchaseWei();
     }).then(min => {
       return crowdsale.sendTransaction({ from: buyer, value: min });
@@ -344,7 +353,11 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
       tokensSold += _tokenSold = receipt.logs[0].args.amount.toNumber();
       return token.balanceOf(buyer);
     }).then(bal => {
-      assert.equal(bal.toString(), _lastBal.add(toBN(_tokenSold)).toString(), 'current balance of buyer must be equal to amount of tokens sold in this transaction');
+      assert.equal(bal.toString(), _lastTokenBal.toString(), 'current token balance of buyer must not change');
+      return crowdsale.balanceOf(buyer);
+    }).then(bal => {
+      assert.equal(bal.toString(), _lastSaleBal.add(toBN(_tokenSold)).toString(),
+        'current crowdsale balance of buyer must be incremented by amount of tokens sold in this transaction');
     })
   });
 
@@ -366,8 +379,8 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     });
   });
 
-  it('allows buyer to withdraw tokens to personal wallet', () => {
-    let _lastBal, _salesBal, _tokenSold = 0;
+  it('does not allows a buyer to withdraw tokens directly', () => {
+    let _lastBal, _salesBal;
     return OnlsCrowdsale.deployed().then(() => {
       return token.balanceOf(buyer);
     }).then(bal => {
@@ -376,6 +389,21 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     }).then(bal => {
       _salesBal = bal;
       return crowdsale.withdrawTokens(buyer, { from: buyer });
+    }).then(assert.fail).catch(error => {
+      assert(error.message.indexOf('revert') >= 0, 'reverts if not an owner');
+    });
+  });
+
+  it('allows admin to withdraw tokens to a buyer\'s wallet', () => {
+    let _lastBal, _salesBal;
+    return OnlsCrowdsale.deployed().then(() => {
+      return token.balanceOf(buyer);
+    }).then(bal => {
+      _lastBal = bal;
+      return crowdsale.balanceOf(buyer);
+    }).then(bal => {
+      _salesBal = bal;
+      return crowdsale.withdrawTokens(buyer, { from: admin });
     }).then(result => {
       assert.equal(result.receipt.rawLogs.length, 2, 'triggers exactly two events from internal contracts');
       return token.balanceOf(buyer);

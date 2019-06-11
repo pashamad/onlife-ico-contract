@@ -44,9 +44,10 @@ contract LockedDeliveryCrowdsale is FinalizableCrowdsale {
 
   /**
    * @dev Try to withdraw tokens to purchaser account and reset its internal balance to 0. Guarded by onlyWhenUnlocked modifier.
+   * This method can only be called by sales owner to ensure KYC is provided.
    * @param beneficiary purchaser account
    */
-  function withdrawTokens(address beneficiary) public onlyWhenUnlocked {
+  function withdrawTokens(address beneficiary) public onlyWhenUnlocked onlyOwner {
     uint256 amount = _balances[beneficiary];
     require(amount > 0, 'requires positive amount');
     _balances[beneficiary] = 0;
@@ -83,15 +84,10 @@ contract LockedDeliveryCrowdsale is FinalizableCrowdsale {
 
   /**
    * @dev Implements token purchase without actually transferring tokens to purchaser account.
-   * Once the contract is unlocked, it start to send tokens directly through the parent method.
    * @param beneficiary purchaser account address
    * @param tokenAmount amount of tokens purchased
    */
   function _processPurchase(address beneficiary, uint256 tokenAmount) internal {
-    if (isLocked()) {
-      _balances[beneficiary] = _balances[beneficiary].add(tokenAmount);
-    } else {
-      _deliverTokens(beneficiary, tokenAmount);
-    }
+    _balances[beneficiary] = _balances[beneficiary].add(tokenAmount);
   }
 }
