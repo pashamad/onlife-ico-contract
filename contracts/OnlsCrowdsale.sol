@@ -71,6 +71,7 @@ contract OnlsCrowdsale is SoftRefundableCrowdsale, AllowanceCrowdsale {
     * @param minPurchaseUsd Minimum amount that can be spent on tokens in USD
     * @param maxPurchaseUsd Maximum amount that can be spent on tokens in USD
     * @param minGoal Minimal goal (soft cap) in WEI. Upon reaching this goal, raised funds and sold tokens can be unlocked and withdrawn.
+    * @param duration Maximum duration of crowdsale in seconds
     * @param fundsWallet Address of EOA where raised funds will be forwarded to
     * @param token Address of the token contract
     */
@@ -82,10 +83,12 @@ contract OnlsCrowdsale is SoftRefundableCrowdsale, AllowanceCrowdsale {
     uint256 minPurchaseUsd,
     uint256 maxPurchaseUsd,
     uint256 minGoal,
+    uint256 duration,
     address payable fundsWallet,
     OnlsToken token
   ) Crowdsale(tokenPriceUsd.mul(usdRate).div(10 ** uint256(token.decimals())), fundsWallet, token)
     FinalizableCrowdsale()
+    TimedCrowdsale(duration)
     AllowanceCrowdsale(tokenOwner)
     SoftRefundableCrowdsale(minGoal, salesOwner)
     public

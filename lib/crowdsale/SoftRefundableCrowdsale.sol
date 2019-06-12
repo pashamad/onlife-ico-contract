@@ -3,6 +3,7 @@ pragma solidity ^0.5.0;
 import "../payment/RefundEscrow.sol";
 import "../payment/CorporateEscrow.sol";
 import "./LockedDeliveryCrowdsale.sol";
+import "./TimedCrowdsale.sol";
 
 /**
  * @title SoftRefundableCrowdsale
@@ -10,7 +11,7 @@ import "./LockedDeliveryCrowdsale.sol";
  * If it has, it starts to send funds to separate non-refundabe escrow.
  * Also, provides methods to refund funds after crowdsale finalized buy softcap goal not reached.
  */
-contract SoftRefundableCrowdsale is LockedDeliveryCrowdsale {
+contract SoftRefundableCrowdsale is LockedDeliveryCrowdsale, TimedCrowdsale {
 
   using SafeMath for uint256;
 
@@ -142,5 +143,10 @@ contract SoftRefundableCrowdsale is LockedDeliveryCrowdsale {
     } else {
       _raiseEscrow.deposit.value(msg.value)(msg.sender);
     }
+  }
+
+  function _preValidatePurchase(address beneficiary, uint256 weiAmount) internal view {
+    require(!finalized(), 'crowdsale is finalized');
+    super._preValidatePurchase(beneficiary, weiAmount);
   }
 }

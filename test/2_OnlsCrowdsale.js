@@ -184,7 +184,7 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     });
   });
 
-  it('does not allow to buy tokens for more than maximum amount of funds before contract unlock', () => {
+  it('does not allow to buy tokens for more than maximum amount of funds', () => {
     let currBal, currBalWei;
     return OnlsCrowdsale.deployed().then(() => {
       return crowdsale.balanceOf(buyer);
@@ -335,7 +335,7 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     });
   });
 
-  it('does not send tokens directly to buyer wallet but keeps them on crowdsale contract even after unlock', () => {
+  it('does not send tokens directly to buyer wallet but keeps them on crowdsale contract after unlock', () => {
     let _lastTokenBal, _lastSaleBal, _tokenSold = 0;
     return OnlsCrowdsale.deployed().then(() => {
       return token.balanceOf(buyer);
@@ -412,6 +412,75 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     });
   });
 
-  it('allows forced refunds by sales owner');
+  it('allows admin to finalize contract if the goal has been reached', () => {
+    return OnlsCrowdsale.deployed().then(() => {
+      return crowdsale.finalize({ from: buyer });
+    }).then(assert.fail).catch(error => {
+      assert(error.message.indexOf('revert') >= 0, 'reverts if not an owner');
+      return crowdsale.finalize({ from: admin });
+    }).then(receipt => {
+      assert.equal(receipt.logs.length, 1, 'triggers one event');
+      assert.equal(receipt.logs[0].event, 'CrowdsaleFinalized', 'should be the "CrowdsaleFinalized" event');
+    });
+  });
+
+  it('forbids to buy tokens after crowdsale has been closed', () => {
+    return OnlsCrowdsale.deployed().then(() => {
+      return crowdsale.getMinPurchaseWei();
+    }).then(min => {
+      return crowdsale.sendTransaction({ from: buyer, value: min });
+    }).then(assert.fail).catch(error => {
+      assert(error.message.indexOf('revert crowdsale is finalized') >= 0, 'reverts if crowdsale is finalized');
+    });
+  });
+});
+
+contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
+
+  let token, crowdsale, tokensSold = 0, weiSpent = new BN(0);
+
+  before(() => {
+    OnlsToken.deployed().then(inst => {
+      token = inst;
+      return OnlsCrowdsale.deployed();
+    }).then(inst => {
+      crowdsale = inst;
+    });
+  });
+
+  it('does not allow to buy tokens after crowdsale duration has passed', () => {
+    return OnlsCrowdsale.deployed().then(() => {
+      return crowdsale.getMinPurchaseWei();
+    }).then(min => {
+      return crowdsale.sendTransaction({ from: buyer, value: min });
+    }).then(receipt => {
+      assert.equal(receipt.logs.length, 2, 'triggers two event');
+      assert.equal(receipt.logs[0].event, 'TokensPurchased', 'first should be the "TokensPurchased" event');
+      tokensSold += weiSpent.add(receipt.logs[0].amount);
+      weSpent = weiSpent.add(receipt.logs[0].value);
+      const delay = config.crowdsale.duration + 1;
+      console.warn(`    - delay for ${delay} seconds...`);
+      return new Promise((resolve) => setTimeout(resolve, delay * 1000));
+    }).then(() => {
+      return crowdsale.getMinPurchaseWei();
+    }).then(min => {
+      return crowdsale.sendTransaction({ from: buyer, value: min });
+    }).then(assert.fail).catch(error => {
+      assert(error.message.indexOf('revert') >= 0, 'reverts if duration has passed');
+    });
+  });
+
+  it('allows to finalize contract if the goal is not reached in planned period of time', () => {
+    return OnlsCrowdsale.deployed().then(() => {
+      return crowdsale.finalize({ from: buyer });
+    }).then(assert.fail).catch(error => {
+      assert(error.message.indexOf('revert') >= 0, 'reverts if not an owner');
+      return crowdsale.finalize({ from: admin });
+    }).then(receipt => {
+      assert.equal(receipt.logs.length, 1, 'triggers one event');
+      assert.equal(receipt.logs[0].event, 'CrowdsaleFinalized', 'should be the "CrowdsaleFinalized" event');
+    });
+  });
+
   it('allows refunds if the sale is closed and goal is not reached');
 });

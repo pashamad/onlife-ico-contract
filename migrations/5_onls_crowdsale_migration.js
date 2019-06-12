@@ -39,6 +39,7 @@ module.exports = function (deployer, network, accounts) {
       minPurchase, // minimum purchase in USD cents
       maxPurchase, // maximum purchase in USD cents
       minGoal, // min goal in WEI to unlock funds withdrawal (softcap)
+      config.crowdsale.duration, // crowdsale duration time in seconds
       fundsWallet, // wallet to send raised funds to
       tokenAddress, // address of the token contract
       { from: migrateAccount, gas: 6721975 }

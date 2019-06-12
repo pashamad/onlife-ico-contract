@@ -3,5 +3,6 @@ module.exports = {
   usdPrice: 0.1,
   minGoal: 250,
   minPurchase: 10,
-  maxPurchase: 500
+  maxPurchase: 500,
+  duration: 5
 };
