@@ -60,7 +60,7 @@ contract LockedDeliveryCrowdsale is FinalizableCrowdsale {
    * I.e. - this method should be called when purchaser requested refund and after funds has been succesfully refunded to him.
    * @param beneficiary address of tokens purchaser
    */
-  function releaseTokens(address beneficiary) internal onlyOwner {
+  function releaseTokens(address beneficiary) internal {
     require(finalized(), 'no refunds allowed before sale is closed');
     _balances[beneficiary] = 0;
   }

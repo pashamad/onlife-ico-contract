@@ -91,6 +91,7 @@ contract SoftRefundableCrowdsale is LockedDeliveryCrowdsale, TimedCrowdsale {
 
   /**
    * @dev Allows to refund funds by purchaser after crowdsale has been finalized but the softcap goal has not been reached.
+   * @dev This method can be called by both sales owner and token purchaser.
    * @param refundee purchaser address
    */
   function claimRefund(address payable refundee) public {
@@ -99,6 +100,13 @@ contract SoftRefundableCrowdsale is LockedDeliveryCrowdsale, TimedCrowdsale {
 
     _goalEscrow.withdraw(refundee);
     releaseTokens(refundee);
+  }
+
+  /**
+   * @dev Returns the value of deposit stored on the goal escrow by a payee.
+   */
+  function depositsOf(address payee) public view returns (uint256) {
+    return _goalEscrow.depositsOf(payee);
   }
 
   /**

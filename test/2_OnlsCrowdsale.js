@@ -454,10 +454,9 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     }).then(min => {
       return crowdsale.sendTransaction({ from: buyer, value: min });
     }).then(receipt => {
-      assert.equal(receipt.logs.length, 2, 'triggers two event');
-      assert.equal(receipt.logs[0].event, 'TokensPurchased', 'first should be the "TokensPurchased" event');
-      tokensSold += weiSpent.add(receipt.logs[0].amount);
-      weSpent = weiSpent.add(receipt.logs[0].value);
+      assert.equal(receipt.logs[0].event, 'TokensPurchased', 'triggers "TokensPurchased" event');
+      tokensSold += receipt.logs[0].args.amount.toNumber();
+      weiSpent = weiSpent.add(receipt.logs[0].args.value);
       const delay = config.crowdsale.duration + 1;
       console.warn(`    - delay for ${delay} seconds...`);
       return new Promise((resolve) => setTimeout(resolve, delay * 1000));
@@ -467,6 +466,14 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
       return crowdsale.sendTransaction({ from: buyer, value: min });
     }).then(assert.fail).catch(error => {
       assert(error.message.indexOf('revert') >= 0, 'reverts if duration has passed');
+    });
+  });
+
+  it('forbids to do refunds on non-finalized crowdsale', () => {
+    return OnlsCrowdsale.deployed().then(() => {
+      return crowdsale.claimRefund(buyer, { from: buyer });
+    }).then(assert.fail).catch(error => {
+      assert(error.message.indexOf('revert') >= 0, 'reverts if crowdsale is not finalized');
     });
   });
 
@@ -482,5 +489,29 @@ contract('OnlsCrowdsale', ([_, admin, fundsWallet, buyer, secondaryWallet]) => {
     });
   });
 
-  it('allows refunds if the sale is closed and goal is not reached');
+  it('allows refunds if the sale is closed and goal is not reached', () => {
+    let _buyerEthBalance, _buyerDeposit;
+    return OnlsCrowdsale.deployed().then(() => {
+      return web3.eth.getBalance(buyer);
+    }).then(bal => {
+      _buyerEthBalance = toBN(bal);
+      return crowdsale.depositsOf(buyer, { from: admin });
+    }).then(dep => {
+      _buyerDeposit = dep;
+      assert.equal(_buyerDeposit.toString(), weiSpent.toString(), 'buyer deposit must be equal to wei spent');
+      return crowdsale.claimRefund(buyer, { from: admin });
+    }).then(result => {
+      assert.equal(result.receipt.rawLogs.length, 1, 'triggers exactly one events from internal contracts');
+      return crowdsale.balanceOf(buyer, { from: admin });
+    }).then(bal => {
+      assert.equal(bal.toNumber(), 0, 'sales balance of buyer must be 0');
+      return crowdsale.depositsOf(buyer, { from: admin });
+    }).then(dep => {
+      assert.equal(dep.toNumber(), 0, 'sales deposit of buyer must be 0');
+      return web3.eth.getBalance(buyer);
+    }).then(bal => {
+      const expected = _buyerEthBalance.add(toBN(_buyerDeposit));
+      assert.equal(bal.toString(), expected.toString(), 'must refund exactly the deposited value of ether');
+    });
+  });
 });
