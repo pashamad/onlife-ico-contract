@@ -4,5 +4,5 @@ module.exports = {
   minGoal: 250,
   minPurchase: 10,
   maxPurchase: 500,
-  duration: 5
+  duration: 86400
 };
